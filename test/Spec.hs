@@ -27,7 +27,7 @@ testActivation = do
     it "Activation sign" $
         sign mat `shouldBe` V.fromList [1, -1]
     it "Activation ReLu" $
-        reLu mat  `shouldBe` V.fromList [8, 0]
+        reLu mat `shouldBe` V.fromList [8, 0]
 
 main :: IO ()
 main = hspec $ testChunk >> testMatrix >> testActivation
