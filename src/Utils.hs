@@ -1,6 +1,8 @@
 module Utils where
 
-chunksOf :: Int -> [a] -> [[a]]
-chunksOf n _ | n <= 0 = []
-chunksOf _ [] = []
-chunksOf n xs = take n xs : chunksOf n (drop n xs)
+import Data.Vector as V (cons, drop, empty, null, take, Vector(..))
+
+chunksOf :: Int -> V.Vector a -> V.Vector (V.Vector a)
+chunksOf length vector
+    | V.null vector = V.empty
+    | otherwise = V.cons (V.take length vector) (chunksOf length (V.drop length vector))
