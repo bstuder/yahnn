@@ -50,3 +50,4 @@ tests:
     - yahnn
     - hspec
     - QuickCheck
+    - vector
