@@ -15,7 +15,7 @@ applyRow function = fmap function . toRows
 multiplyVector :: (Real a) => Matrix a -> V.Vector a -> V.Vector a
 multiplyVector matrix vector
     | columns matrix /= length vector = V.empty
-    | otherwise = fmap sum $ fmap (V.zipWith (*) vector) (toRows matrix)
+    | otherwise = sum . V.zipWith (*) vector <$> toRows matrix
 
 toRows :: Matrix a -> V.Vector (V.Vector a)
 toRows (Matrix _ columns vector) = chunksOf columns vector
