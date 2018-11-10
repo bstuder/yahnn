@@ -26,10 +26,12 @@ testMatrix = do
         M.multiplyVector matrix (V.fromList [0, -6, 3, 1]) `shouldBe` V.fromList [1, 58]
 
 testActivation = do
-    it "Activation sign" $
-        sign vector `shouldBe` V.fromList [-1, 1, 1, 1, -1, -1, 1, -1]
-    it "Activation ReLu" $
-        reLu vector `shouldBe` V.fromList [0, 3, 6, 1, 0, 0, 3, 0]
+    it "ReLu activation forward" $
+        activationForward ReLu vector `shouldBe` V.fromList [0, 3, 6, 1, 0, 0, 3, 0]
+    it "ReLu activation derivate" $
+        activationDerivate ReLu vector `shouldBe` V.fromList [0, 1, 1, 1, 0, 0, 1, 0]
+    it "Sign activation forward" $
+        activationForward Sign vector `shouldBe` V.fromList [-1, 1, 1, 1, -1, -1, 1, -1]
 
 main :: IO ()
 main = hspec $ testChunk >> testMatrix >> testActivation
