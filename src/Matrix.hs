@@ -1,7 +1,8 @@
 module Matrix where
 
 import qualified Utils as U (chunksOf, generateVector)
-import qualified Data.Vector as V (cons, empty, generate, replicate, Vector(..), zipWith)
+import qualified Data.List as L (transpose)
+import qualified Data.Vector as V (cons, empty, generate, replicate, Vector(..), zipWith, backpermute, fromList)
 import qualified System.Random as S (StdGen(..), split)
 
 data Matrix a = Matrix {
@@ -32,3 +33,8 @@ multiplyVector matrix vector
 
 toRows :: Matrix a -> V.Vector (V.Vector a)
 toRows (Matrix _ columns vector) = U.chunksOf columns vector
+
+transpose :: Matrix a -> Matrix a
+transpose (Matrix rows columns vec) = Matrix columns rows transVec
+  where transVec = V.backpermute vec (V.fromList newIndexs)
+        newIndexs = concat . L.transpose . take rows . iterate (fmap (+columns)) $ [0..columns-1]
