@@ -14,12 +14,11 @@ applyRow :: (V.Vector a -> b) -> Matrix a -> V.Vector b
 applyRow function = fmap function . toRows
 
 fromLayersList :: [Int] -> S.StdGen -> V.Vector (Matrix Double)
-fromLayersList  [] _ = V.empty
-fromLayersList (x:xs) generator
-    | null xs = V.empty
-    | otherwise =
-      let (vector, next_generator) = U.generateVector (x * head xs) generator
-      in Matrix x (head xs) vector `V.cons` fromLayersList xs next_generator
+fromLayersList [] _ = V.empty
+fromLayersList [x] _ = V.empty
+fromLayersList (x:y:xs) generator = Matrix x y randomVector `V.cons` fromLayersList xs generator
+  where
+    randomVector = U.generateVector (x * y) generator
 
 generate :: Int -> Int -> (Int -> a) -> Matrix a
 generate rows columns function = Matrix rows columns (V.generate (rows * columns) function)
