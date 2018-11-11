@@ -13,10 +13,10 @@ data Matrix a = Matrix {
 applyRow :: (V.Vector a -> b) -> Matrix a -> V.Vector b
 applyRow function = fmap function . toRows
 
-fromLayersList :: [Int] -> S.StdGen -> V.Vector (Matrix Double)
-fromLayersList [] _ = V.empty
-fromLayersList [x] _ = V.empty
-fromLayersList (x:y:xs) generator = Matrix x y randomVector `V.cons` fromLayersList (y:xs) subGenerator2
+fromLayersList :: [Int] -> S.StdGen -> [Matrix Double]
+fromLayersList [] _ = []
+fromLayersList [x] _ = []
+fromLayersList (x:y:xs) generator = Matrix x y randomVector : fromLayersList (y:xs) subGenerator2
   where
     (subGenerator1, subGenerator2) = S.split generator
     randomVector = U.generateVector (x * y) subGenerator1
