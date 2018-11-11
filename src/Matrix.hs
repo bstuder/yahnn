@@ -1,8 +1,9 @@
 module Matrix where
 
-import qualified Utils as U (chunksOf, generateVector)
-import qualified Data.Vector as V (cons, empty, generate, replicate, Vector(..), zipWith)
+import qualified Data.List as L (transpose)
+import qualified Data.Vector as V (backpermute, cons, empty, fromList, generate, Vector(..), zipWith)
 import qualified System.Random as S (StdGen(..), split)
+import qualified Utils as U (chunksOf, generateVector)
 
 data Matrix a = Matrix {
     rows :: !Int,
@@ -16,10 +17,10 @@ applyRow function = fmap function . toRows
 fromLayersList :: [Int] -> S.StdGen -> [Matrix Double]
 fromLayersList [] _ = []
 fromLayersList [x] _ = []
-fromLayersList (x:y:xs) generator = Matrix x y randomVector : fromLayersList (y:xs) subGenerator2
+fromLayersList (x:y:xs) generator = Matrix x y randomVector : fromLayersList (y:xs) secondGenerator
   where
-    (subGenerator1, subGenerator2) = S.split generator
-    randomVector = U.generateVector (x * y) subGenerator1
+    (firstGenerator, secondGenerator) = S.split generator
+    randomVector = U.generateVector (x * y) firstGenerator
 
 generate :: Int -> Int -> ((Int, Int) -> a) -> Matrix a
 generate rows columns function =
@@ -32,3 +33,8 @@ multiplyVector matrix vector
 
 toRows :: Matrix a -> V.Vector (V.Vector a)
 toRows (Matrix _ columns vector) = U.chunksOf columns vector
+
+transpose :: Matrix a -> Matrix a
+transpose (Matrix rows columns vector) = Matrix columns rows transposedVector
+  where transposedVector = V.backpermute vector (V.fromList newIndexes)
+        newIndexes = concat . L.transpose . take rows . iterate (fmap (+columns)) $ [0 .. columns - 1]
