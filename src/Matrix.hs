@@ -17,9 +17,9 @@ fromLayersList :: [Int] -> S.StdGen -> V.Vector (Matrix Double)
 fromLayersList  [] _ = V.empty
 fromLayersList (x:xs) generator
     | null xs = V.empty
-    | otherwise = do
-        let (vector, next_generator) = U.generateVector (x * (head xs)) generator
-        Matrix x (head xs) vector `V.cons` fromLayersList xs next_generator
+    | otherwise =
+      let (vector, next_generator) = U.generateVector (x * head xs) generator
+      in Matrix x (head xs) vector `V.cons` fromLayersList xs next_generator
 
 generate :: Int -> Int -> (Int -> a) -> Matrix a
 generate rows columns function = Matrix rows columns (V.generate (rows * columns) function)

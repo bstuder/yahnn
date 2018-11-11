@@ -7,7 +7,7 @@ import qualified Data.Vector as V
 
 vector = V.fromList [-2, 3, 6, 1, -8, -9, 3, -5]
 
-testUtils = do
+testUtils =
     describe "Test of utility functions:" $ do
         it "Chunks an empty vector" $
             chunksOf 5 (V.empty :: V.Vector Int) `shouldBe` V.empty
@@ -18,7 +18,7 @@ testUtils = do
 
 matrix = M.Matrix 2 4 vector
 
-testMatrix = do
+testMatrix =
     describe "Test of matrix functions:" $ do
         it "Sums rows" $
             M.applyRow sum matrix `shouldBe` V.fromList [8, -19]
@@ -27,7 +27,7 @@ testMatrix = do
         it "Multiplies vector with matching dimensions" $
             M.multiplyVector matrix (V.fromList [0, -6, 3, 1]) `shouldBe` V.fromList [1, 58]
 
-testActivation = do
+testActivation =
     describe "Test of activation functions:" $ do
         it "Forwards a ReLu activation" $
             A.activationForward A.ReLu vector `shouldBe` V.fromList [0, 3, 6, 1, 0, 0, 3, 0]
@@ -37,5 +37,5 @@ testActivation = do
             A.activationForward A.Sign vector `shouldBe` V.fromList [-1, 1, 1, 1, -1, -1, 1, -1]
 
 main :: IO ()
-main = do
+main =
     hspec $ testUtils >> testMatrix >> testActivation

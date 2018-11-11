@@ -12,7 +12,7 @@ chunksOf length vector
 generateVector :: Int -> S.StdGen -> (V.Vector Double, S.StdGen)
 generateVector length generator
     | length <= 0 = (V.empty, generator)
-    | otherwise = do
+    | otherwise =
         let (first, last) = S.randomR (-1.0, 1.0) generator
-        let (vector, next_generator) = generateVector (length - 1) last
-        (first `V.cons` vector, next_generator)
+            (vector, next_generator) = generateVector (length - 1) last
+        in (first `V.cons` vector, next_generator)
