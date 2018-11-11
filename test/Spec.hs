@@ -1,6 +1,6 @@
 import Test.Hspec (describe, hspec, it, shouldBe)
 
-import Utils
+import qualified Utils
 import qualified Activation as A
 import qualified Matrix as M
 import qualified Data.Vector as V
@@ -37,4 +37,5 @@ testActivation = do
             A.activationForward A.Sign vector `shouldBe` V.fromList [-1, 1, 1, 1, -1, -1, 1, -1]
 
 main :: IO ()
-main = hspec $ testUtils >> testMatrix >> testActivation
+main = do
+    hspec $ testUtils >> testMatrix >> testActivation

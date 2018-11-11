@@ -25,7 +25,8 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-  - vector
+    - random 
+    - vector
 
 executables:
   yahnn-exe:
@@ -36,6 +37,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - random
     - yahnn
 
 tests:
@@ -47,7 +49,7 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - yahnn
     - hspec
     - QuickCheck
     - vector
+    - yahnn
