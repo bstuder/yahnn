@@ -1,6 +1,6 @@
 import Test.Hspec (describe, hspec, it, shouldBe)
 
-import qualified Utils
+import qualified Utils as U
 import qualified Activation as A
 import qualified Matrix as M
 import qualified Data.Vector as V
@@ -10,11 +10,11 @@ vector = V.fromList [-2, 3, 6, 1, -8, -9, 3, -5]
 testUtils =
     describe "Test of utility functions:" $ do
         it "Chunks an empty vector" $
-            chunksOf 5 (V.empty :: V.Vector Int) `shouldBe` V.empty
+            U.chunksOf 5 (V.empty :: V.Vector Int) `shouldBe` V.empty
         it "Even chunks a vector" $
-            chunksOf 2 vector `shouldBe` V.fromList (fmap V.fromList [[-2, 3], [6, 1], [-8, -9], [3, -5]])
+            U.chunksOf 2 vector `shouldBe` V.fromList (fmap V.fromList [[-2, 3], [6, 1], [-8, -9], [3, -5]])
         it "Uneven chunks a vector" $
-            chunksOf 3 vector `shouldBe` V.fromList (fmap V.fromList [[-2, 3, 6], [1, -8, -9], [3, -5]])
+            U.chunksOf 3 vector `shouldBe` V.fromList (fmap V.fromList [[-2, 3, 6], [1, -8, -9], [3, -5]])
 
 matrix = M.Matrix 2 4 vector
 
