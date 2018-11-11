@@ -16,7 +16,7 @@ applyRow function = fmap function . toRows
 fromLayersList :: [Int] -> S.StdGen -> V.Vector (Matrix Double)
 fromLayersList [] _ = V.empty
 fromLayersList [x] _ = V.empty
-fromLayersList (x:y:xs) generator = Matrix x y randomVector `V.cons` fromLayersList xs generator
+fromLayersList (x:y:xs) generator = Matrix x y randomVector `V.cons` fromLayersList (y:xs) generator
   where
     randomVector = U.generateVector (x * y) generator
 
