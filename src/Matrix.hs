@@ -20,9 +20,9 @@ fromLayersList (x:y:xs) generator = Matrix x y randomVector `V.cons` fromLayersL
   where
     randomVector = U.generateVector (x * y) generator
 
-generate :: Int -> Int -> (Int -> Int -> a) -> Matrix a
+generate :: Int -> Int -> ((Int, Int) -> a) -> Matrix a
 generate rows columns function =
-    Matrix rows columns $ V.generate (rows * columns) (\indice -> function (div indice columns) (mod indice columns))
+    Matrix rows columns $ V.generate (rows * columns) (\indice -> function (indice `div` columns, indice `mod` columns))
 
 multiplyVector :: (Real a) => Matrix a -> V.Vector a -> V.Vector a
 multiplyVector matrix vector
