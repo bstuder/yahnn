@@ -1,7 +1,5 @@
 module Main where
 
-import Lib
-
 import qualified Activation as A
 import qualified System.Random as S (mkStdGen)
 import qualified Matrix as M
