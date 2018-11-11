@@ -8,7 +8,7 @@ data Matrix a = Matrix {
     rows :: !Int,
     columns :: !Int,
     vector :: V.Vector a
-} deriving (Show)
+} deriving (Eq, Show)
 
 applyRow :: (V.Vector a -> b) -> Matrix a -> V.Vector b
 applyRow function = fmap function . toRows

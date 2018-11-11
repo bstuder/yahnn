@@ -8,7 +8,7 @@ import qualified System.Random as S (StdGen(..))
 data Network a = Network {
     activations :: [A.Activation],
     weights :: [M.Matrix a]
-} deriving (Show)
+} deriving (Eq, Show)
 
 fromList :: [Int] -> [A.Activation] -> S.StdGen -> Network Double
 fromList layers activations generator

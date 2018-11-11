@@ -1,9 +1,11 @@
 import Test.Hspec (describe, hspec, it, shouldBe)
 
-import qualified Utils as U
 import qualified Activation as A
+import qualified Data.Vector as V (empty, fromList, Vector(..))
 import qualified Matrix as M
-import qualified Data.Vector as V
+import qualified Network as N
+import qualified System.Random as S (mkStdGen)
+import qualified Utils as U
 
 vector = V.fromList [-2, 3, 6, 1, -8, -9, 3, -5]
 
@@ -36,6 +38,20 @@ testActivation =
         it "Forwards a Sign activation" $
             A.activationForward A.Sign vector `shouldBe` V.fromList [-1, 1, 1, 1, -1, -1, 1, -1]
 
+generator = S.mkStdGen 123456
+
+testNetwork =
+    describe "Test of network functions:" $ do
+        it "Generates a random network" $
+            N.fromList [3, 2, 1] [A.ReLu, A.Sign] generator `shouldBe` N.Network [A.ReLu, A.Sign] [
+                M.Matrix 3 2 $ V.fromList [0.2677647642349532, -0.7475585300807475, -0.8720265567974974, -1.6527016918064907e-2, -0.3026656798412395, 0.35555427661286965],
+                M.Matrix 2 1 $ V.fromList [-0.7860612064870318, -0.34481051139882446]
+            ]
+
 main :: IO ()
 main =
-    hspec $ testUtils >> testMatrix >> testActivation
+    hspec $
+        testUtils >>
+        testMatrix >>
+        testActivation >>
+        testNetwork
