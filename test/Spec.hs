@@ -13,12 +13,14 @@ vectorTranspose = V.fromList [-2, -8, 3, -9, 6, 3, 1, -5]
 matrix = M.Matrix 2 4 vector
 matrixTranspose = M.Matrix 4 2 vectorTranspose
 
+generator = S.mkStdGen 12345
+
 instance TQ.Arbitrary a => TQ.Arbitrary (M.Matrix a) where
     arbitrary = do
-        nrows <- TQ.getPositive <$> TQ.arbitrary
-        ncols <- TQ.getPositive <$> TQ.arbitrary
-        vec <- V.fromList <$> TQ.vector (nrows * ncols)
-        return $ M.Matrix nrows ncols vec
+        rows <- TQ.getPositive <$> TQ.arbitrary
+        columns <- TQ.getPositive <$> TQ.arbitrary
+        vector <- V.fromList <$> TQ.vector (rows * columns)
+        return $ M.Matrix rows columns vector
 
 testUtils =
     T.describe "Test of utility functions:" $ do
@@ -37,9 +39,9 @@ testMatrix =
             M.multiplyVector matrix vector `T.shouldBe` V.empty
         T.it "Multiplies vector with matching dimensions" $
             M.multiplyVector matrix (V.fromList [0, -6, 3, 1]) `T.shouldBe` V.fromList [1, 58]
-        T.it "Transpose Matrix" $
+        T.it "Transposes a matrix" $
             M.transpose matrix `T.shouldBe` matrixTranspose
-        T.it "double transpose is the identity" $
+        T.it "Transposes several matrices twice" $
             TQ.property $ \m -> M.transpose (M.transpose m) == (m :: M.Matrix Int)
 
 testActivation =
@@ -50,8 +52,6 @@ testActivation =
             A.activationDerivate A.ReLu vector `T.shouldBe` V.fromList [0, 1, 1, 1, 0, 0, 1, 0]
         T.it "Forwards a Sign activation" $
             A.activationForward A.Sign vector `T.shouldBe` V.fromList [-1, 1, 1, 1, -1, -1, 1, -1]
-
-generator = S.mkStdGen 12345
 
 testNetwork =
     T.describe "Test of network functions:" $ do
