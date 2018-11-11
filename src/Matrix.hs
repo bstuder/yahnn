@@ -2,7 +2,7 @@ module Matrix where
 
 import qualified Utils as U (chunksOf, generateVector)
 import qualified Data.Vector as V (cons, empty, generate, replicate, Vector(..), zipWith)
-import qualified System.Random as S (randomR, StdGen(..))
+import qualified System.Random as S (StdGen(..), split)
 
 data Matrix a = Matrix {
     rows :: !Int,
@@ -16,9 +16,10 @@ applyRow function = fmap function . toRows
 fromLayersList :: [Int] -> S.StdGen -> V.Vector (Matrix Double)
 fromLayersList [] _ = V.empty
 fromLayersList [x] _ = V.empty
-fromLayersList (x:y:xs) generator = Matrix x y randomVector `V.cons` fromLayersList (y:xs) generator
+fromLayersList (x:y:xs) generator = Matrix x y randomVector `V.cons` fromLayersList (y:xs) subGenerator2
   where
-    randomVector = U.generateVector (x * y) generator
+    (subGenerator1, subGenerator2) = S.split generator
+    randomVector = U.generateVector (x * y) subGenerator1
 
 generate :: Int -> Int -> ((Int, Int) -> a) -> Matrix a
 generate rows columns function =
