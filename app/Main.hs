@@ -7,6 +7,4 @@ import qualified Network as N
 import qualified Utils
 
 main :: IO ()
-main = do
-    print $ N.fromList [3, 2, 1] [A.ReLu, A.Sign] (S.mkStdGen 65498465465)
-    
+main = print $ N.fromList [3, 2, 1] [A.ReLu, A.Sign] (S.mkStdGen 65498465465)
