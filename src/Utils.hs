@@ -1,7 +1,7 @@
 module Utils where
 
-import qualified Data.Vector as V (cons, drop, empty, null, take, fromListN, Vector(..))
-import qualified System.Random as S (randomRs, StdGen(..))
+import qualified Data.Vector as V (cons, drop, empty, fromListN, null, take, Vector(..))
+import qualified System.Random as R (randomRs, StdGen(..))
 
 chunksOf :: Int -> V.Vector a -> V.Vector (V.Vector a)
 chunksOf length vector
@@ -9,5 +9,5 @@ chunksOf length vector
     | V.null vector = V.empty
     | otherwise = V.take length vector `V.cons` chunksOf length (V.drop length vector)
 
-generateVector :: Int -> S.StdGen -> V.Vector Double
-generateVector n = V.fromListN n . S.randomRs (-1.0, 1.0)
+generateVector :: Int -> R.StdGen -> V.Vector Double
+generateVector n = V.fromListN n . R.randomRs (-1.0, 1.0)
