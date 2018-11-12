@@ -8,10 +8,11 @@ import qualified System.Random as S (mkStdGen)
 import qualified Utils as U
 
 vector = V.fromList [-2, 3, 6, 1, -8, -9, 3, -5]
-vectorTranspose = V.fromList [-2, -8, 3, -9, 6, 3, 1, -5]
-
 matrix = M.Matrix 2 4 vector
-matrixTranspose = M.Matrix 4 2 vectorTranspose
+network = N.Network [A.ReLu, A.ReLu] [
+        M.Matrix 2 3 $ V.fromList [2, -1, 3, 7, -5, 0],
+        M.Matrix 1 2 $ V.fromList [3, -1]
+    ]
 
 generator = S.mkStdGen 12345
 
@@ -40,7 +41,7 @@ testMatrix =
         T.it "Multiplies vector with matching dimensions" $
             M.multiplyVector matrix (V.fromList [0, -6, 3, 1]) `T.shouldBe` V.fromList [1, 58]
         T.it "Transposes a matrix" $
-            M.transpose matrix `T.shouldBe` matrixTranspose
+            M.transpose matrix `T.shouldBe` M.Matrix 4 2 (V.fromList [-2, -8, 3, -9, 6, 3, 1, -5])
         T.it "Transposes several matrices twice" $
             TQ.property $ \m -> M.transpose (M.transpose m) == (m :: M.Matrix Int)
 
@@ -57,9 +58,11 @@ testNetwork =
     T.describe "Test of network functions:" $ do
         T.it "Generates a random network" $
             N.fromList [3, 2, 1] [A.ReLu, A.Sign] generator `T.shouldBe` N.Network [A.ReLu, A.Sign] [
-                M.Matrix 3 2 $ V.fromList [1.9543818196252394e-2, -8.256066438750898e-2, 0.30326905954505934, 0.3728469630471347, -0.40816135066028125, -0.7351927684114008],
-                M.Matrix 2 1 $ V.fromList [9.31527772916203e-2, -4.6601584116810146e-2]
+                M.Matrix 2 3 $ V.fromList [1.9543818196252394e-2, -8.256066438750898e-2, 0.30326905954505934, 0.3728469630471347, -0.40816135066028125, -0.7351927684114008],
+                M.Matrix 1 2 $ V.fromList [9.31527772916203e-2, -4.6601584116810146e-2]
             ]
+        T.it "Forwards an input through a network" $
+            N.forward (V.fromList [1, -3, 2]) network `T.shouldBe` [V.fromList [11, 22], V.fromList [11]]
 
 main :: IO ()
 main =

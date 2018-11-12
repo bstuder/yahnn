@@ -39,6 +39,7 @@ executables:
     dependencies:
     - random
     - yahnn
+    - vector
 
 tests:
   yahnn-test:
