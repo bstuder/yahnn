@@ -48,11 +48,11 @@ testMatrix =
 testActivation =
     T.describe "Test of activation functions:" $ do
         T.it "Forwards a ReLu activation" $
-            A.activationForward A.ReLu vector `T.shouldBe` V.fromList [0, 3, 6, 1, 0, 0, 3, 0]
+            A.forward A.ReLu vector `T.shouldBe` V.fromList [0, 3, 6, 1, 0, 0, 3, 0]
         T.it "Derivates a ReLu activation" $
-            A.activationDerivate A.ReLu vector `T.shouldBe` V.fromList [0, 1, 1, 1, 0, 0, 1, 0]
+            A.derivate A.ReLu vector `T.shouldBe` V.fromList [0, 1, 1, 1, 0, 0, 1, 0]
         T.it "Forwards a Sign activation" $
-            A.activationForward A.Sign vector `T.shouldBe` V.fromList [-1, 1, 1, 1, -1, -1, 1, -1]
+            A.forward A.Sign vector `T.shouldBe` V.fromList [-1, 1, 1, 1, -1, -1, 1, -1]
 
 testNetwork =
     T.describe "Test of network functions:" $ do
