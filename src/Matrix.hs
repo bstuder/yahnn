@@ -1,5 +1,6 @@
 module Matrix where
 
+import qualified Data.Either as E (Either(..))
 import qualified Data.List as L (transpose)
 import qualified Data.Vector as V (backpermute, cons, empty, fromList, generate, Vector(..), zipWith)
 import qualified System.Random as R (StdGen(..), split)
@@ -26,10 +27,10 @@ generate :: Int -> Int -> ((Int, Int) -> a) -> Matrix a
 generate rows columns function =
     Matrix rows columns $ V.generate (rows * columns) (\indice -> function (indice `div` columns, indice `mod` columns))
 
-multiplyVector :: (RealFloat a) => Matrix a -> V.Vector a -> V.Vector a
+multiplyVector :: (RealFloat a) => Matrix a -> V.Vector a -> E.Either String (V.Vector a)
 multiplyVector matrix vector
-    | columns matrix /= length vector = V.empty
-    | otherwise = sum . V.zipWith (*) vector <$> toRows matrix
+    | columns matrix /= length vector = E.Left "Mismatching dimensions between the matrix and the vector."
+    | otherwise = E.Right $ sum . V.zipWith (*) vector <$> toRows matrix
 
 toRows :: Matrix a -> V.Vector (V.Vector a)
 toRows (Matrix _ columns vector) = U.chunksOf columns vector

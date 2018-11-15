@@ -1,6 +1,7 @@
 import qualified Activation as A
+import qualified Data.Either as E (isLeft, Either(..))
 import qualified Data.Vector as V (empty, fromList, Vector(..))
-import qualified Test.Hspec as T (describe, hspec, it, shouldBe)
+import qualified Test.Hspec as T (describe, hspec, it, shouldBe, shouldSatisfy)
 import qualified Test.QuickCheck as TQ (Arbitrary(..), property, arbitrary, vector, getPositive)
 import qualified Matrix as M
 import qualified Network as N
@@ -36,10 +37,10 @@ testMatrix =
     T.describe "Test of matrix functions:" $ do
         T.it "Sums rows" $
             M.applyRow sum matrix `T.shouldBe` V.fromList [8, -19]
-        T.it "Multiplies vector with unmatching dimensions" $
-            M.multiplyVector matrix vector `T.shouldBe` V.empty
+        T.it "Multiplies vector with mismatching dimensions" $
+            M.multiplyVector matrix vector `T.shouldSatisfy` E.isLeft
         T.it "Multiplies vector with matching dimensions" $
-            M.multiplyVector matrix (V.fromList [0, -6, 3, 1]) `T.shouldBe` V.fromList [1, 58]
+            M.multiplyVector matrix (V.fromList [0, -6, 3, 1]) `T.shouldBe` E.Right (V.fromList [1, 58])
         T.it "Transposes a matrix" $
             M.transpose matrix `T.shouldBe` M.Matrix 4 2 (V.fromList [-2, -8, 3, -9, 6, 3, 1, -5])
         T.it "Transposes several matrices twice" $
@@ -56,18 +57,19 @@ testActivation =
 
 testNetwork =
     T.describe "Test of network functions:" $ do
-        T.it "Generates a random network" $
-            N.fromList [3, 2, 1] [A.ReLu, A.Sign] generator `T.shouldBe` N.Network [A.ReLu, A.Sign] [
+        T.it "Generates a random network with mismatching dimensions" $
+            N.fromList [3, 2] [A.ReLu, A.Sign] generator `T.shouldSatisfy` E.isLeft
+        T.it "Generates a random network with matching dimensions" $
+            N.fromList [3, 2, 1] [A.ReLu, A.Sign] generator `T.shouldBe` E.Right (N.Network [A.ReLu, A.Sign] [
                 M.Matrix 2 3 $ V.fromList [1.9543818196252394e-2, -8.256066438750898e-2, 0.30326905954505934, 0.3728469630471347, -0.40816135066028125, -0.7351927684114008],
                 M.Matrix 1 2 $ V.fromList [9.31527772916203e-2, -4.6601584116810146e-2]
-            ]
+            ])
         T.it "Forwards an input through a network" $
-            N.forward (V.fromList [1, -3, 2]) network `T.shouldBe` [V.fromList [11, 22], V.fromList [11]]
+            N.forward (V.fromList [1, -3, 2]) network `T.shouldBe` E.Right [V.fromList [11, 22], V.fromList [11]]
 
 main :: IO ()
-main =
-    T.hspec $
-        testUtils >>
-        testMatrix >>
-        testActivation >>
-        testNetwork
+main = T.hspec $ do
+    testUtils
+    testMatrix
+    testActivation
+    testNetwork
