@@ -32,6 +32,9 @@ multiplyVector matrix vector
     | columns matrix /= length vector = E.Left "Mismatching dimensions between the matrix and the vector."
     | otherwise = E.Right $ sum . V.zipWith (*) vector <$> toRows matrix
 
+multiplyMatrix :: (RealFloat a) => V.Vector a -> Matrix a -> E.Either String (V.Vector a)
+multiplyMatrix vector matrix = transpose matrix `multiplyVector` vector
+
 toRows :: Matrix a -> V.Vector (V.Vector a)
 toRows (Matrix _ columns vector) = U.chunksOf columns vector
 
