@@ -1,5 +1,5 @@
 import qualified Activation as A
-import qualified Data.Either as E (isLeft, Either(..))
+import qualified Data.Either as E
 import qualified Data.Vector as V (empty, fromList, Vector(..))
 import qualified Test.Hspec as T (describe, hspec, it, shouldBe, shouldSatisfy)
 import qualified Test.QuickCheck as TQ (Arbitrary(..), property, arbitrary, vector, getPositive)
@@ -45,6 +45,11 @@ testMatrix =
             M.transpose matrix `T.shouldBe` M.Matrix 4 2 (V.fromList [-2, -8, 3, -9, 6, 3, 1, -5])
         T.it "Transposes several matrices twice" $
             TQ.property $ \m -> M.transpose (M.transpose m) == (m :: M.Matrix Int)
+        T.it "Multiply two matrices" $
+            matrix `M.matmul` M.Matrix 4 3 (V.fromList [-6..5]) `T.shouldBe` E.Right (M.Matrix 2 3 (V.fromList [6.0, 14.0, 22.0, 60.0, 41.0, 22.0]))
+        T.it "Matrices can always be multiply by its transposed" $
+            TQ.property $ \m -> E.isRight (m `M.matmul` M.transpose (m :: M.Matrix Double))
+
 
 testActivation =
     T.describe "Test of activation functions:" $ do
@@ -70,9 +75,15 @@ testNetwork =
                 (V.fromList <$> [[0, 8], [0]])
            )
 
+{-testBackWardStep =-}
+    {-T.describe "Test of the backward propagation step" $ do-}
+        {-T.it "step 1" $ -}
+            {-N.backwardStep (V.fromList [1, 2]) A.ReLu matrix (V.fromList [2, 5]) (V.fromList [-1, 10]) (V.fromList [15, 7]) `T.shouldBe` E.Left "test"-}
+
 main :: IO ()
 main = T.hspec $ do
     testUtils
     testMatrix
     testActivation
     testNetwork
+   {-testBackWardStep-}

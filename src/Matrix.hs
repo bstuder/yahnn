@@ -2,7 +2,7 @@ module Matrix where
 
 import qualified Data.Either as E (Either(..))
 import qualified Data.List as L (transpose)
-import qualified Data.Vector as V (backpermute, cons, empty, fromList, generate, Vector(..), zipWith)
+import qualified Data.Vector as V (backpermute, cons, empty, fromList, generate, Vector(..), zipWith, length)
 import qualified System.Random as R (StdGen(..), split)
 import qualified Utils as U (chunksOf, generateVector)
 
@@ -11,6 +11,22 @@ data Matrix a = Matrix {
     columns :: !Int,
     vector :: V.Vector a
 } deriving (Eq, Show)
+
+fromRowVector :: V.Vector a -> Matrix a
+fromRowVector v = Matrix 1 (V.length v) v
+
+fromColumnVector :: V.Vector a -> Matrix a
+fromColumnVector v = Matrix (V.length v) 1 v
+
+dotProduct :: RealFloat a => V.Vector a -> V.Vector a -> a
+dotProduct v w = sum $ V.zipWith (*) v w
+
+matmul :: RealFloat a => Matrix a -> Matrix a -> Either String (Matrix a)
+matmul matrixLeft matrixRight
+  | columns matrixLeft /= rows matrixRight = E.Left "Mismatching dimensions between two matrix"
+  | otherwise = E.Right $ Matrix (rows matrixLeft) (columns matrixRight) newVector
+  where newVector = toRows matrixLeft >>= \row -> dotProduct row <$> rightColumns
+        rightColumns = toColumns matrixRight
 
 applyRow :: (V.Vector a -> b) -> Matrix a -> V.Vector b
 applyRow function = fmap function . toRows
@@ -29,14 +45,17 @@ generate rows columns function =
 
 multiplyVector :: (RealFloat a) => Matrix a -> V.Vector a -> E.Either String (V.Vector a)
 multiplyVector matrix vector
-    | columns matrix /= length vector = E.Left "Mismatching dimensions between the matrix and the vector."
-    | otherwise = E.Right $ sum . V.zipWith (*) vector <$> toRows matrix
+    | columns matrix /= V.length vector = E.Left "Mismatching dimensions between the matrix and the vector."
+    | otherwise = E.Right $ dotProduct vector <$> toRows matrix
 
 multiplyMatrix :: (RealFloat a) => V.Vector a -> Matrix a -> E.Either String (V.Vector a)
 multiplyMatrix vector matrix = transpose matrix `multiplyVector` vector
 
 toRows :: Matrix a -> V.Vector (V.Vector a)
 toRows (Matrix _ columns vector) = U.chunksOf columns vector
+
+toColumns :: Matrix a -> V.Vector (V.Vector a)
+toColumns = toRows . transpose
 
 transpose :: Matrix a -> Matrix a
 transpose (Matrix rows columns vector) = Matrix columns rows transposedVector
