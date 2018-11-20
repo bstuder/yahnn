@@ -65,7 +65,10 @@ testNetwork =
                 M.Matrix 1 2 $ V.fromList [9.31527772916203e-2, -4.6601584116810146e-2]
             ])
         T.it "Forwards an input through a network" $
-            N.forward (V.fromList [1, -3, 2]) network `T.shouldBe` E.Right [V.fromList [11, 22], V.fromList [11]]
+            N.forward (V.fromList [-1, -3, -2]) network `T.shouldBe` E.Right (N.ForwardResult
+                (V.fromList <$> [[-5, 8], [-8]])
+                (V.fromList <$> [[0, 8], [0]])
+           )
 
 main :: IO ()
 main = T.hspec $ do

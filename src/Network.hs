@@ -11,11 +11,20 @@ data Network a = Network {
     weights :: [M.Matrix a]
 } deriving (Eq, Show)
 
-forward :: (RealFloat a) => V.Vector a -> Network a -> E.Either String [V.Vector a]
-forward input (Network [] []) = E.Right []
-forward input (Network (activation:activations) (weight:weights)) = do
-    ouput <- A.forward activation <$> M.multiplyVector weight input 
-    (ouput :) <$> forward ouput (Network activations weights)
+data ForwardResult a = ForwardResult {
+    layerInputs :: [V.Vector a],
+    layerOutputs :: [V.Vector a]
+} deriving (Eq, Show)
+
+forward :: (RealFloat a) => V.Vector a -> Network a -> E.Either String (ForwardResult a)
+forward input network  = uncurry ForwardResult . unzip <$> forward' input network
+
+forward' :: (RealFloat a) => V.Vector a -> Network a -> E.Either String [(V.Vector a, V.Vector a)]
+forward' input (Network [] []) = E.Right []
+forward' input (Network (activation:activations) (weight:weights)) = do
+    activationInput <- M.multiplyVector weight input
+    let output = A.forward activation activationInput
+    ((activationInput, output) :) <$> forward' output (Network activations weights)
 
 fromList :: [Int] -> [A.Activation] -> R.StdGen -> E.Either String (Network Double)
 fromList layers activations generator
