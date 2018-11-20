@@ -8,7 +8,10 @@ forward :: (RealFloat a) => Activation -> V.Vector a -> V.Vector a
 forward ReLu = fmap (\x -> if x < 0 then 0 else x)
 forward Sigmoid = fmap (\x -> 1 / (1 + exp(-x)))
 forward Sign = fmap (\x -> if x < 0 then -1 else 1)
-forward TanH = fmap (tanh)
+forward TanH = fmap tanh
 
 derivate :: (RealFloat a) => Activation -> V.Vector a -> V.Vector a
 derivate ReLu = fmap (\x -> if x < 0 then 0 else 1)
+derivate Sigmoid = fmap (\x -> 1 / (2 + exp(x) + exp(-x)))
+derivate Sign = fmap (const 0)
+derivate TanH = fmap (\x -> 1 - (tanh x) ** 2)
