@@ -72,7 +72,7 @@ testNetwork =
         T.it "Forwards an input through a network" $
             N.forward (V.fromList [-1, -3, -2]) network `T.shouldBe` E.Right (N.ForwardResult
                 (V.fromList <$> [[-5, 8], [-8]])
-                (V.fromList <$> [[0, 8], [0]])
+                (V.fromList <$> [[-1, -3, -2],[0, 8], [0]])
            )
 
 {-testBackWardStep =-}

@@ -5,8 +5,9 @@ import qualified Loss as L (Loss(..), forward, derivate)
 import qualified Data.Either as E (Either(..))
 import qualified Data.Vector as V (empty, fromList, Vector(..), zipWith)
 import qualified Data.List as DL
-import qualified Matrix as M (fromLayersList, Matrix(..), multiplyVector, multiplyMatrix, empty)
+import qualified Matrix as M (fromLayersList, Matrix(..), multiplyVector, multiplyMatrix, empty, transpose)
 import qualified System.Random as R (StdGen(..))
+import qualified Data.Traversable as DT (mapAccumR)
 
 data Network a = Network {
     activations :: [A.Activation],
@@ -19,7 +20,9 @@ data ForwardResult a = ForwardResult {
 } deriving (Eq, Show)
 
 forward :: (RealFloat a) => V.Vector a -> Network a -> E.Either String (ForwardResult a)
-forward input network  = uncurry ForwardResult . unzip <$> forward' input network
+forward input network  = do
+    (inputs, outputs) <- unzip <$> forward' input network
+    return ForwardResult { layerInputs = inputs, layerOutputs = input:outputs } -- the original input is the "zero" output
 
 forward' :: (RealFloat a) => V.Vector a -> Network a -> E.Either String [(V.Vector a, V.Vector a)]
 forward' input (Network [] []) = E.Right []
@@ -56,9 +59,7 @@ backward :: (RealFloat a) =>
             L.Loss ->                                -- ^ Loss function
             Either String [(M.Matrix a, V.Vector a)] -- ^ List of W_i updates with the propagation vector
 backward (Network activations weights) (ForwardResult layerInputs layerOutputs) target loss =
-    sequence $ scanl step' init (DL.zip4 (reverse weights) (reverse activations) revInputs revInputs)
-      where (lastOutput:revOutput) = reverse layerOutputs
-            revInputs = reverse layerInputs
-            initialPropagation = L.derivate loss lastOutput target
-            init = E.Right (M.empty, initialPropagation)
-            step' previous (wei, act, inp, out) = previous >>= \(_, prop) -> backwardStep inp act wei out prop
+    sequence $ scanr step' initScan (DL.zip4 weights activations layerInputs (init layerOutputs))
+      where initialPropagation                  = L.derivate loss (last layerOutputs) target
+            initScan                            = E.Right (M.empty, initialPropagation)
+            step' (wei, act, inp, out) previous = previous >>= \(_, prop) -> backwardStep inp act wei out prop
