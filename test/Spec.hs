@@ -38,18 +38,17 @@ testMatrix =
         T.it "Sums rows" $
             M.applyRow sum matrix `T.shouldBe` V.fromList [8, -19]
         T.it "Multiplies vector with mismatching dimensions" $
-            M.multiplyVector matrix vector `T.shouldSatisfy` E.isLeft
+            M.multiplyVectorR matrix vector `T.shouldSatisfy` E.isLeft
         T.it "Multiplies vector with matching dimensions" $
-            M.multiplyVector matrix (V.fromList [0, -6, 3, 1]) `T.shouldBe` E.Right (V.fromList [1, 58])
+            M.multiplyVectorR matrix (V.fromList [0, -6, 3, 1]) `T.shouldBe` E.Right (V.fromList [1, 58])
         T.it "Transposes a matrix" $
             M.transpose matrix `T.shouldBe` M.Matrix 4 2 (V.fromList [-2, -8, 3, -9, 6, 3, 1, -5])
         T.it "Transposes several matrices twice" $
             TQ.property $ \m -> M.transpose (M.transpose m) == (m :: M.Matrix Int)
         T.it "Multiply two matrices" $
-            matrix `M.matmul` M.Matrix 4 3 (V.fromList [-6..5]) `T.shouldBe` E.Right (M.Matrix 2 3 (V.fromList [6.0, 14.0, 22.0, 60.0, 41.0, 22.0]))
+            matrix `M.multiplyMatrices` M.Matrix 4 3 (V.fromList [-6..5]) `T.shouldBe` E.Right (M.Matrix 2 3 (V.fromList [6.0, 14.0, 22.0, 60.0, 41.0, 22.0]))
         T.it "Matrices can always be multiply by its transposed" $
-            TQ.property $ \m -> E.isRight (m `M.matmul` M.transpose (m :: M.Matrix Double))
-
+            TQ.property $ \m -> E.isRight (m `M.multiplyMatrices` M.transpose (m :: M.Matrix Double))
 
 testActivation =
     T.describe "Test of activation functions:" $ do
