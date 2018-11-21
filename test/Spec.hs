@@ -34,20 +34,28 @@ testUtils =
             U.chunksOf 3 vector `T.shouldBe` V.fromList (fmap V.fromList [[-2, 3, 6], [1, -8, -9], [3, -5]])
 
 testMatrix =
-    T.describe "Test of matrix functions:" $ do
-        T.it "Sums rows" $
+    T.describe "Test of linear algebra functions:" $ do
+        T.it "Sums rows of a matrix" $
             M.applyRow sum matrix `T.shouldBe` V.fromList [8, -19]
-        T.it "Multiplies vector with mismatching dimensions" $
-            M.multiplyVectorR matrix vector `T.shouldSatisfy` E.isLeft
-        T.it "Multiplies vector with matching dimensions" $
+        T.it "Multiplies two vectors" $
+            M.fromVectors vector (V.fromList [-1, 5]) `T.shouldBe` M.Matrix 8 2 (V.fromList [2, -10, -3, 15, -6, 30, -1, 5, 8, -40, 9, -45, -3, 15, 5, -25])
+        T.it "Multiplies a vector with a matrix of matching dimensions" $
+            M.multiplyVectorL (V.fromList [-1, 5]) matrix `T.shouldBe` E.Right (V.fromList [-38, -48, 9, -26])
+        T.it "Multiplies a vector with a matrix of mismatching dimensions" $
+            M.multiplyVectorL vector matrix `T.shouldSatisfy` E.isLeft
+        T.it "Multiplies a matrix with a vector of matching dimensions" $
             M.multiplyVectorR matrix (V.fromList [0, -6, 3, 1]) `T.shouldBe` E.Right (V.fromList [1, 58])
+        T.it "Multiplies a matrix with a vector of mismatching dimensions" $
+            M.multiplyVectorR matrix vector `T.shouldSatisfy` E.isLeft
         T.it "Transposes a matrix" $
             M.transpose matrix `T.shouldBe` M.Matrix 4 2 (V.fromList [-2, -8, 3, -9, 6, 3, 1, -5])
         T.it "Transposes several matrices twice" $
             TQ.property $ \m -> M.transpose (M.transpose m) == (m :: M.Matrix Int)
-        T.it "Multiply two matrices" $
-            matrix `M.multiplyMatrices` M.Matrix 4 3 (V.fromList [-6..5]) `T.shouldBe` E.Right (M.Matrix 2 3 (V.fromList [6.0, 14.0, 22.0, 60.0, 41.0, 22.0]))
-        T.it "Matrices can always be multiply by its transposed" $
+        T.it "Multiplies two matrices with mismatching dimensions" $
+            matrix `M.multiplyMatrices` M.Matrix 2 2 (V.fromList [1, 1, 1, 1]) `T.shouldSatisfy` E.isLeft
+        T.it "Multiplies two matrices with matching dimensions" $
+            matrix `M.multiplyMatrices` M.Matrix 4 3 (V.fromList [-6..5]) `T.shouldBe` E.Right (M.Matrix 2 3 (V.fromList [6, 14, 22, 60, 41, 22]))
+        T.it "Multiplies several matrices by their transpose" $
             TQ.property $ \m -> E.isRight (m `M.multiplyMatrices` M.transpose (m :: M.Matrix Double))
 
 testActivation =
