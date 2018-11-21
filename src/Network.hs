@@ -1,9 +1,11 @@
 module Network where
 
 import qualified Activation as A (Activation(..), forward, derivate)
+import qualified Loss as L (Loss(..), forward, derivate)
 import qualified Data.Either as E (Either(..))
 import qualified Data.Vector as V (empty, fromList, Vector(..), zipWith)
-import qualified Matrix as M (fromLayersList, Matrix(..), multiplyVector, multiplyMatrix)
+import qualified Data.List as DL
+import qualified Matrix as M (fromLayersList, Matrix(..), multiplyVector, multiplyMatrix, empty)
 import qualified System.Random as R (StdGen(..))
 
 data Network a = Network {
@@ -39,11 +41,24 @@ backwardStep :: RealFloat a =>
              -> A.Activation  -- ^ Activation function
              -> M.Matrix a    -- ^ Weights of current layer
              -> V.Vector a    -- ^ Ouput of the above layer
-             -> V.Vector a    -- ^ Current gradient
-             -> V.Vector a    -- ^ Current derivative
+             -> V.Vector a    -- ^ Current propagation
              -> Either String (M.Matrix a, V.Vector a)
-backwardStep activationInput activation weight output gradient derivative = (,) <$> nextGradient <*> nextDerivative
+backwardStep activationInput activation weight output propagation = (,) <$> nextGradient <*> nextPropagation
   where jacobian = A.derivate activation activationInput
-        nextDerivative = V.zipWith (*) derivative <$> jacobian `M.multiplyMatrix` weight
-        nextGradient = E.Right $ output `crossVector` V.zipWith (*) derivative jacobian
+        nextPropagation = V.zipWith (*) propagation <$> jacobian `M.multiplyMatrix` weight
+        nextGradient = E.Right $ output `crossVector` V.zipWith (*) propagation jacobian
         crossVector v1 v2 = M.Matrix (length v1) (length v2) (v1 >>= \e -> fmap (*e) v2)
+
+backward :: (RealFloat a) =>
+            Network a ->                             -- ^ Current Network
+            ForwardResult a ->                       -- ^ Forward pass result
+            V.Vector a ->                            -- ^ Target vector
+            L.Loss ->                                -- ^ Loss function
+            Either String [(M.Matrix a, V.Vector a)] -- ^ List of W_i updates with the propagation vector
+backward (Network activations weights) (ForwardResult layerInputs layerOutputs) target loss =
+    sequence $ scanl step' init (DL.zip4 (reverse weights) (reverse activations) revInputs revInputs)
+      where (lastOutput:revOutput) = reverse layerOutputs
+            revInputs = reverse layerInputs
+            initialPropagation = L.derivate loss lastOutput target
+            init = E.Right (M.empty, initialPropagation)
+            step' previous (wei, act, inp, out) = previous >>= \(_, prop) -> backwardStep inp act wei out prop

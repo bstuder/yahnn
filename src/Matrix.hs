@@ -12,6 +12,12 @@ data Matrix a = Matrix {
     vector :: V.Vector a
 } deriving (Eq, Show)
 
+empty :: Matrix a
+empty = Matrix 0 0 mempty
+
+showDim :: Matrix a -> String
+showDim (Matrix rows columns _) = "(" <> show rows <> "," <> show columns <> ")"
+
 fromRowVector :: V.Vector a -> Matrix a
 fromRowVector v = Matrix 1 (V.length v) v
 
@@ -45,7 +51,7 @@ generate rows columns function =
 
 multiplyVector :: (RealFloat a) => Matrix a -> V.Vector a -> E.Either String (V.Vector a)
 multiplyVector matrix vector
-    | columns matrix /= V.length vector = E.Left "Mismatching dimensions between the matrix and the vector."
+  | columns matrix /= V.length vector = E.Left $ "Mismatching dimensions between the matrix " <> showDim matrix <> " and the vector: " <> show (V.length vector)
     | otherwise = E.Right $ dotProduct vector <$> toRows matrix
 
 multiplyMatrix :: (RealFloat a) => V.Vector a -> Matrix a -> E.Either String (V.Vector a)
