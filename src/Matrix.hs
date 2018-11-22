@@ -2,15 +2,23 @@ module Matrix where
 
 import qualified Data.Either as E (Either(..))
 import qualified Data.List as L (transpose)
-import qualified Data.Vector as V (backpermute, cons, empty, fromList, generate, Vector(..), zipWith, length)
+import qualified Data.Vector as V (backpermute, cons, empty, fromList, generate, length, map, Vector(..), zipWith)
 import qualified System.Random as R (StdGen(..), split)
 import qualified Utils as U (chunksOf, dotProduct, generateVector)
 
 data Matrix a = Matrix {
-    rows :: !Int,
-    columns :: !Int,
-    vector :: V.Vector a
+  rows :: !Int,
+  columns :: !Int,
+  vector :: V.Vector a
 } deriving (Eq, Show)
+
+instance Functor Matrix where
+  fmap function (Matrix rows columns vector) = Matrix rows columns $ V.map function vector
+
+addMatrices :: RealFloat a => Matrix a -> Matrix a -> Either String (Matrix a)
+addMatrices (Matrix firstRows firstColumns firstVector) (Matrix secondRows secondColumns secondVector)
+  | (firstRows /= secondRows) || (firstColumns /= secondColumns) = E.Left "Mismatching dimensions between both matrices"
+  | otherwise = E.Right $ Matrix firstRows firstColumns $ V.zipWith (+) firstVector secondVector
 
 applyRow :: (V.Vector a -> b) -> Matrix a -> V.Vector b
 applyRow function = fmap function . toRows
