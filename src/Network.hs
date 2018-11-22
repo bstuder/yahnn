@@ -3,7 +3,7 @@ module Network where
 import qualified Activation as A (Activation(..), derivate, forward)
 import qualified Data.Either as E (Either(..))
 import qualified Data.Vector as V (empty, fromList, Vector(..), zipWith)
-import qualified Data.List as LI
+import qualified Data.List as DL (zip4)
 import qualified Loss as L (derivate, forward, Loss(..))
 import qualified Matrix as M (empty, fromLayersList, fromVectors, Matrix(..), multiplyVectorL, multiplyVectorR, transpose)
 import qualified System.Random as R (StdGen(..))
@@ -49,7 +49,7 @@ backward ::
 backward (Network activations weights) (ForwardResult layerInputs layerOutputs) target loss =
     fmap (fst <$>) eitherResult
     where
-        eitherResult = sequence $ init $ scanr computeBackwardStep propagation (LI.zip4 layerInputs activations weights (init layerOutputs))
+        eitherResult = sequence $ init $ scanr computeBackwardStep propagation (DL.zip4 layerInputs activations weights (init layerOutputs))
         propagation = E.Right (M.empty, L.derivate loss (last layerOutputs) target)
         computeBackwardStep (input, activation, weight, output) previous = previous >>= \(_, x) -> backwardStep input activation weight output x
 

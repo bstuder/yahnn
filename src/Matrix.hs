@@ -1,7 +1,7 @@
 module Matrix where
 
 import qualified Data.Either as E (Either(..))
-import qualified Data.List as L (transpose)
+import qualified Data.List as DL (transpose)
 import qualified Data.Vector as V (backpermute, cons, empty, fromList, generate, length, map, Vector(..), zipWith)
 import qualified System.Random as R (StdGen(..), split)
 import qualified Utils as U (chunksOf, dotProduct, generateVector)
@@ -78,4 +78,4 @@ transpose :: Matrix a -> Matrix a
 transpose (Matrix rows columns vector) = Matrix columns rows transposedVector
   where
     transposedVector = V.backpermute vector (V.fromList newIndexes)
-    newIndexes = concat . L.transpose . take rows . iterate (fmap (+columns)) $ [0 .. columns - 1]
+    newIndexes = concat . DL.transpose . take rows . iterate (fmap (+columns)) $ [0 .. columns - 1]
