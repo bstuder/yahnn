@@ -19,5 +19,5 @@ main = do
     let gradient = network >>= (\justNetwork -> forwardResult >>= (\justForward -> N.backward justNetwork justForward datapoint L.MSE))
     print gradient
 
-    let newNetwork = network >>= (\justNetwork -> gradient >>= (\justGradient -> O.apply justNetwork justGradient O.SGD [1, 0.01]))
+    let newNetwork = network >>= (\justNetwork -> gradient >>= (\justGradient -> O.apply justNetwork justGradient (O.SGD 1 0.01)))
     print newNetwork

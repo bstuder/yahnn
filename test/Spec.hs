@@ -64,8 +64,6 @@ testActivation =
             A.forward A.ReLu vector `T.shouldBe` V.fromList [0, 3, 6, 1, 0, 0, 3, 0]
         T.it "Derivates a ReLu activation" $
             A.derivate A.ReLu vector `T.shouldBe` V.fromList [0, 1, 1, 1, 0, 0, 1, 0]
-        T.it "Forwards a Sign activation" $
-            A.forward A.Sign vector `T.shouldBe` V.fromList [-1, 1, 1, 1, -1, -1, 1, -1]
 
 testNetwork =
     T.describe "Test of network functions:" $ do
