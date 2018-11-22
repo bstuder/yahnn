@@ -4,9 +4,7 @@ import qualified Activation as A
 import qualified Data.Vector as V (fromList)
 import qualified System.Random as S (mkStdGen)
 import qualified Loss as L
-import qualified Matrix as M
 import qualified Network as N
-import qualified Utils
 
 main :: IO ()
 main = do
@@ -19,4 +17,4 @@ main = do
     print $ do
         justForward <- forwardResult
         justNetwork <- network
-        return $ N.backward justNetwork justForward datapoint L.MSE
+        N.backward justNetwork justForward datapoint L.MSE
