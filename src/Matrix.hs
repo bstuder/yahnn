@@ -7,8 +7,8 @@ import qualified System.Random as R (StdGen(..), split)
 import qualified Utils as U (chunksOf, dotProduct, generateVector)
 
 data Matrix a = Matrix
-    { rows :: !Int,
-    , columns :: !Int,
+    { rows :: !Int
+    , columns :: !Int
     , vector :: V.Vector a
     } deriving (Eq, Show)
 
