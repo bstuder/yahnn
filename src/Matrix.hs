@@ -6,19 +6,19 @@ import qualified Data.Vector as V (backpermute, cons, empty, fromList, generate,
 import qualified System.Random as R (StdGen(..), split)
 import qualified Utils as U (chunksOf, dotProduct, generateVector)
 
-data Matrix a = Matrix {
-  rows :: !Int,
-  columns :: !Int,
-  vector :: V.Vector a
-} deriving (Eq, Show)
+data Matrix a = Matrix
+    { rows :: !Int,
+    , columns :: !Int,
+    , vector :: V.Vector a
+    } deriving (Eq, Show)
 
 instance Functor Matrix where
-  fmap function (Matrix rows columns vector) = Matrix rows columns $ V.map function vector
+    fmap function (Matrix rows columns vector) = Matrix rows columns $ V.map function vector
 
 addMatrices :: RealFloat a => Matrix a -> Matrix a -> Either String (Matrix a)
 addMatrices (Matrix firstRows firstColumns firstVector) (Matrix secondRows secondColumns secondVector)
-  | (firstRows /= secondRows) || (firstColumns /= secondColumns) = E.Left "Mismatching dimensions between both matrices"
-  | otherwise = E.Right $ Matrix firstRows firstColumns $ V.zipWith (+) firstVector secondVector
+    | (firstRows /= secondRows) || (firstColumns /= secondColumns) = E.Left "Mismatching dimensions between both matrices"
+    | otherwise = E.Right $ Matrix firstRows firstColumns $ V.zipWith (+) firstVector secondVector
 
 applyRow :: (V.Vector a -> b) -> Matrix a -> V.Vector b
 applyRow function = fmap function . toRows
@@ -49,21 +49,21 @@ generate rows columns function =
 
 multiplyMatrices :: RealFloat a => Matrix a -> Matrix a -> Either String (Matrix a)
 multiplyMatrices leftMatrix rightMatrix
-  | columns leftMatrix /= rows rightMatrix = E.Left "Mismatching dimensions between both matrices"
-  | otherwise = E.Right $ Matrix (rows leftMatrix) (columns rightMatrix) newVector
+    | columns leftMatrix /= rows rightMatrix = E.Left "Mismatching dimensions between both matrices"
+    | otherwise = E.Right $ Matrix (rows leftMatrix) (columns rightMatrix) newVector
   where
     newVector = toRows leftMatrix >>= \row -> U.dotProduct row <$> rightColumns
     rightColumns = toColumns rightMatrix
 
 multiplyVectorL :: (RealFloat a) => V.Vector a -> Matrix a -> E.Either String (V.Vector a)
 multiplyVectorL vector matrix
-  | rows matrix /= V.length vector = E.Left $ "Mismatching dimensions between vector " <> show (V.length vector) <> " and matrix " <> showSize matrix
-  | otherwise = transpose matrix `multiplyVectorR` vector
+    | rows matrix /= V.length vector = E.Left $ "Mismatching dimensions between vector " <> show (V.length vector) <> " and matrix " <> showSize matrix
+    | otherwise = transpose matrix `multiplyVectorR` vector
 
 multiplyVectorR :: (RealFloat a) => Matrix a -> V.Vector a -> E.Either String (V.Vector a)
 multiplyVectorR matrix vector
-  | columns matrix /= V.length vector = E.Left $ "Mismatching dimensions between matrix " <> showSize matrix <> " and vector " <> show (V.length vector)
-  | otherwise = E.Right $ U.dotProduct vector <$> toRows matrix
+    | columns matrix /= V.length vector = E.Left $ "Mismatching dimensions between matrix " <> showSize matrix <> " and vector " <> show (V.length vector)
+    | otherwise = E.Right $ U.dotProduct vector <$> toRows matrix
 
 showSize :: Matrix a -> String
 showSize (Matrix rows columns _) = "(" <> show rows <> "," <> show columns <> ")"
