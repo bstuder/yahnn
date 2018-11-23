@@ -1,16 +1,16 @@
 module Utils where
 
-import qualified Data.Vector as V (cons, drop, empty, fromListN, null, take, Vector(..), zipWith)
-import qualified System.Random as R (randomRs, StdGen(..))
+import qualified Data.Vector as DV (cons, drop, empty, fromListN, null, take, Vector(..), zipWith)
+import qualified System.Random as SR (randomRs, StdGen(..))
 
-chunksOf :: Int -> V.Vector a -> V.Vector (V.Vector a)
+chunksOf :: Int -> DV.Vector a -> DV.Vector (DV.Vector a)
 chunksOf length vector
-    | length <= 0 = V.empty
-    | V.null vector = V.empty
-    | otherwise = V.take length vector `V.cons` chunksOf length (V.drop length vector)
+    | length <= 0 = DV.empty
+    | DV.null vector = DV.empty
+    | otherwise = DV.take length vector `DV.cons` chunksOf length (DV.drop length vector)
 
-dotProduct :: RealFloat a => V.Vector a -> V.Vector a -> a
-dotProduct firstVector secondVector = sum $ V.zipWith (*) firstVector secondVector
+dotProduct :: RealFloat a => DV.Vector a -> DV.Vector a -> a
+dotProduct firstVector secondVector = sum $ DV.zipWith (*) firstVector secondVector
 
-generateVector :: Int -> R.StdGen -> V.Vector Double
-generateVector n = V.fromListN n . R.randomRs (-1.0, 1.0)
+generateVector :: Int -> SR.StdGen -> DV.Vector Double
+generateVector n = DV.fromListN n . SR.randomRs (-1.0, 1.0)
