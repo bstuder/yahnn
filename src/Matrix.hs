@@ -2,7 +2,7 @@ module Matrix where
 
 import qualified Data.Either as E (Either(..))
 import qualified Data.List as DL (transpose)
-import qualified Data.Vector as V (backpermute, cons, empty, fromList, generate, length, map, Vector(..), zipWith)
+import qualified Data.Vector as V (and, backpermute, cons, empty, fromList, generate, length, map, Vector(..), zipWith)
 import qualified System.Random as R (StdGen(..), split)
 import qualified Utils as U (chunksOf, dotProduct, generateVector)
 
@@ -25,6 +25,11 @@ applyRow function = fmap function . toRows
 
 empty :: Matrix a
 empty = Matrix 0 0 mempty
+
+equal :: RealFloat a => Matrix a -> Matrix a -> a -> Bool
+equal (Matrix firstRows firstColumns firstVector) (Matrix secondRows secondColumns secondVector) precision
+    | (firstRows /= secondRows) || (firstColumns /= secondColumns) = False
+    | otherwise = V.and $ V.zipWith (\x y -> abs (x - y) <= precision) firstVector secondVector
 
 fromColumnVector :: V.Vector a -> Matrix a
 fromColumnVector vector = Matrix (V.length vector) 1 vector
