@@ -38,13 +38,12 @@ forwardStep input (Network (activation:activations) (weight:weights)) = do
 
 {-- Backward propagation --}
 
-backward ::
-    (RealFloat a) =>
-    Network a ->                -- ^ Current Network
-    ForwardResult a ->          -- ^ Forward pass result
-    DV.Vector a ->               -- ^ Target vector
-    L.Loss ->                   -- ^ Loss function
-    Either String [M.Matrix a]  -- ^ List of W_i updates with the propagation vector
+backward :: (RealFloat a) =>
+         Network a                     -- ^ Current Network
+         -> ForwardResult a            -- ^ Forward pass result
+         -> DV.Vector a                -- ^ Target vector
+         -> L.Loss                     -- ^ Loss function
+         -> Either String [M.Matrix a] -- ^ List of W_i updates with the propagation vector
 backward (Network activations weights) (ForwardResult layerInputs layerOutputs) target loss =
     fmap (fst <$>) eitherResult
     where
@@ -52,14 +51,13 @@ backward (Network activations weights) (ForwardResult layerInputs layerOutputs) 
         propagation = Right (M.empty, L.derivate loss (last layerOutputs) target)
         computeBackwardStep (input, activation, weight, output) previous = previous >>= \(_, x) -> backwardStep input activation weight output x
 
-backwardStep ::
-    RealFloat a =>
-    DV.Vector a                                  -- ^ Input of the layer
-    -> A.Activation                             -- ^ Activation function
-    -> M.Matrix a                               -- ^ Weights of current layer
-    -> DV.Vector a                               -- ^ Ouput of the above layer
-    -> DV.Vector a                               -- ^ Current propagation
-    -> Either String (M.Matrix a, DV.Vector a)   -- ^ W_i updates with the propagation vector
+backwardStep :: RealFloat a =>
+             DV.Vector a                                -- ^ Input of the layer
+             -> A.Activation                            -- ^ Activation function
+             -> M.Matrix a                              -- ^ Weights of current layer
+             -> DV.Vector a                             -- ^ Ouput of the above layer
+             -> DV.Vector a                             -- ^ Current propagation
+             -> Either String (M.Matrix a, DV.Vector a) -- ^ W_i updates with the propagation vector
 backwardStep input activation weights output propagation =
     (,) <$> Right nextGradient <*> nextPropagation
     where

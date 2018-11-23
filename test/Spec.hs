@@ -32,7 +32,7 @@ testUtils =
         TH.it "Chunk of a vector" $ do
             U.chunksOf 5 (DV.empty :: DV.Vector Int) `TH.shouldBe` DV.empty
             U.chunksOf 2 vector `TH.shouldBe` DV.fromList (fmap DV.fromList [[-2, 3], [6, 1], [-8, -9]])
-            U.chunksOf 5 vector `TH.shouldBe` DV.fromList (fmap DV.fromList [[-2, 3, 6, 1, -8], [-9]])         
+            U.chunksOf 5 vector `TH.shouldBe` DV.fromList (fmap DV.fromList [[-2, 3, 6, 1, -8], [-9]])
 
 testMatrix =
     TH.describe "Test of linear algebra functions:" $ do
@@ -45,7 +45,7 @@ testMatrix =
             M.multiplyVectorL vector matrix `TH.shouldSatisfy` DE.isLeft
         TH.it "Multiplication of a matrix and a vector" $ do
             M.multiplyVectorR matrix (DV.fromList [0, -6, 3]) `TH.shouldBe` Right (DV.fromList [0, 21])
-            M.multiplyVectorR matrix vector `TH.shouldSatisfy` DE.isLeft    
+            M.multiplyVectorR matrix vector `TH.shouldSatisfy` DE.isLeft
         TH.it "Multiplication of two matrices" $ do
             matrix `M.multiplyMatrices` M.Matrix 3 3 (DV.fromList [-4..4]) `TH.shouldBe` Right (M.Matrix 2 3 (DV.fromList [17, 24, 31, -14, -30, -46]))
             matrix `M.multiplyMatrices` M.Matrix 2 2 (DV.fromList [1, 1, 1, 1]) `TH.shouldSatisfy` DE.isLeft
@@ -63,7 +63,7 @@ testActivation =
     TH.describe "Test of activation functions:" $
         TH.it "ReLu activation function" $ do
             A.forward A.ReLu vector `TH.shouldBe` DV.fromList [0, 3, 6, 1, 0, 0]
-            A.derivate A.ReLu vector `TH.shouldBe` DV.fromList [0, 1, 1, 1, 0, 0]            
+            A.derivate A.ReLu vector `TH.shouldBe` DV.fromList [0, 1, 1, 1, 0, 0]
 
 testNetwork =
     TH.describe "Test of network functions:" $ do
@@ -89,7 +89,7 @@ testNetwork =
                     M.Matrix 6 3 $ DV.fromList [10746.6669921875, 8101.333984375, 27982.66796875, 0, 0, 0, 42033.3359375, 31686.66796875, 109448.3359375, 381246.6875, 287401.34375, 992707.6875, 290073.34375, 218670.6875, 755306.375, 95246.671875, 71801.3359375, 248007.671875]
                     ])
             (forwardResult >>= \justForwardResult -> N.backward network justForwardResult vector L.MSE) `TH.shouldSatisfy`
-                \backwardResult -> DE.fromRight False $ and . zipWith (M.equal 1) backwardExpected <$> backwardResult
+                \backwardResult -> any (and . zipWith (M.equal 1) backwardExpected) backwardResult
 
 main :: IO ()
 main = TH.hspec $ do
