@@ -60,6 +60,11 @@ testMatrix =
             matrix `M.multiplyMatrices` M.Matrix 3 3 (V.fromList [-4..4]) `T.shouldBe` E.Right (M.Matrix 2 3 (V.fromList [17, 24, 31, -14, -30, -46]))
         T.it "Multiplies several matrices by their transpose" $
             TQ.property $ \m -> E.isRight (m `M.multiplyMatrices` M.transpose (m :: M.Matrix Double))
+        T.it "Equality with tolerance" $ do
+            matrix `T.shouldSatisfy` M.equal 0 matrix
+            matrix `T.shouldSatisfy` not . M.equal 0 (M.transpose matrix)  -- Wrong dimensions
+            matrix `T.shouldSatisfy` not . M.equal 0.1 (M.Matrix 2 3 $ V.fromList [-2, 3, 6+0.11, 1, -8, -9])
+            matrix `T.shouldSatisfy` M.equal 0.2 (M.Matrix 2 3 $ V.fromList [-2.15, 3.19, 5.9, 1.2, -8.2, -9])
 
 testActivation =
     T.describe "Test of activation functions:" $ do

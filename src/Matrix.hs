@@ -26,9 +26,9 @@ applyRow function = fmap function . toRows
 empty :: Matrix a
 empty = Matrix 0 0 mempty
 
-equal :: RealFloat a => Matrix a -> Matrix a -> a -> Bool
-equal (Matrix firstRows firstColumns firstVector) (Matrix secondRows secondColumns secondVector) precision
-    | (firstRows /= secondRows) || (firstColumns /= secondColumns) = False
+equal :: RealFloat a => a -> Matrix a -> Matrix a -> Bool
+equal precision (Matrix firstRows firstColumns firstVector) (Matrix secondRows secondColumns secondVector)
+    | (firstRows, firstColumns) /= (secondRows, secondColumns) = False
     | otherwise = V.and $ V.zipWith (\x y -> abs (x - y) <= precision) firstVector secondVector
 
 fromColumnVector :: V.Vector a -> Matrix a
