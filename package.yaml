@@ -43,7 +43,6 @@ executables:
     - cereal-vector
     - vector
   yahnn-exe:
-    default: true
     main: Main.hs
     source-dirs: app
     ghc-options:
