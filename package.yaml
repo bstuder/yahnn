@@ -27,13 +27,25 @@ library:
   dependencies:
     - random 
     - vector
-    - bytestring
-    - binary
 
 executables:
+  convert-MNIST-exe:
+    main: Convert_MNIST.hs
+    source-dirs: tools
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - bytestring
+    - binary
+    - cereal
+    - cereal-vector
+    - vector
   yahnn-exe:
-    main:                Main.hs
-    source-dirs:         app
+    default: true
+    main: Main.hs
+    source-dirs: app
     ghc-options:
     - -threaded
     - -rtsopts
@@ -42,13 +54,11 @@ executables:
     - random
     - yahnn
     - vector
-    - bytestring
-    - binary
 
 tests:
   yahnn-test:
-    main:                Spec.hs
-    source-dirs:         test
+    main: Spec.hs
+    source-dirs: test
     ghc-options:
     - -threaded
     - -rtsopts
@@ -58,6 +68,4 @@ tests:
     - QuickCheck
     - random
     - vector
-    - bytestring
-    - binary
     - yahnn
