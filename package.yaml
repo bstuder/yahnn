@@ -27,6 +27,8 @@ library:
   dependencies:
     - random 
     - vector
+    - bytestring
+    - binary
 
 executables:
   yahnn-exe:
@@ -40,6 +42,8 @@ executables:
     - random
     - yahnn
     - vector
+    - bytestring
+    - binary
 
 tests:
   yahnn-test:
@@ -54,4 +58,6 @@ tests:
     - QuickCheck
     - random
     - vector
+    - bytestring
+    - binary
     - yahnn
