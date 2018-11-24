@@ -2,10 +2,8 @@ module Main where
 
 import qualified Data.Binary.Get as DBG
 import qualified Data.ByteString.Lazy as DBL
-import qualified Data.ByteString as DB
-import qualified Data.Serialize as DS
 import qualified Data.Vector as DV (fromList)
-import qualified Data.Vector.Serialize as DVS
+import qualified Dataset as D (Dataset(..), toByteString)
 
 chunksOf :: Int -> [a] -> [[a]]
 chunksOf length list
@@ -18,29 +16,27 @@ parseData = do
     numberOfItems <- DBG.getInt32be
     rows <- DBG.getInt32be
     columns <- DBG.getInt32be
-    rawData <- DBG.getByteString $ fromIntegral (numberOfItems * rows * columns)
-    return $! map (DV.fromList) $ chunksOf (fromIntegral (rows * columns)) $ DB.unpack rawData
+    rawData <- DBG.getLazyByteString $ fromIntegral (numberOfItems * rows * columns)
+    return $! map (DV.fromList) $ chunksOf (fromIntegral (rows * columns)) $ DBL.unpack rawData
 
 parseLabels = do
     magicNumber <- DBG.getInt32be
     numberOfItems <- DBG.getInt32be
-    rawData <- DBG.getByteString $ fromIntegral numberOfItems
-    return $! map (DV.fromList) $ chunksOf 1 $ DB.unpack rawData
+    rawData <- DBG.getLazyByteString $ fromIntegral numberOfItems
+    return $! map (DV.fromList) $ chunksOf 1 $ DBL.unpack rawData
 
 main :: IO ()
 main = do
     input <- DBL.readFile "data/MNIST/train_data"
-    let trainingSet = DBG.runGet parseData input
-    DB.writeFile "data/MNIST/train_data_encoded" $ DS.encode trainingSet
-
+    let datapoints = DBG.runGet parseData input
     input <- DBL.readFile "data/MNIST/train_labels"
-    let trainingSet = DBG.runGet parseLabels input
-    DB.writeFile "data/MNIST/train_labels_encoded" $ DS.encode trainingSet
+    let labels = DBG.runGet parseLabels input
+    let dataset = D.Dataset datapoints labels
+    DBL.writeFile "data/MNIST/trainset" $ D.toByteString dataset
 
     input <- DBL.readFile "data/MNIST/test_data"
-    let trainingSet = DBG.runGet parseData input
-    DB.writeFile "data/MNIST/test_data_encoded" $ DS.encode trainingSet
-
+    let datapoints = DBG.runGet parseData input
     input <- DBL.readFile "data/MNIST/test_labels"
-    let trainingSet = DBG.runGet parseLabels input
-    DB.writeFile "data/MNIST/test_labels_encoded" $ DS.encode trainingSet
+    let labels = DBG.runGet parseLabels input
+    let dataset = D.Dataset datapoints labels
+    DBL.writeFile "data/MNIST/testset" $ D.toByteString dataset

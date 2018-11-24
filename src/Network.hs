@@ -3,8 +3,9 @@ module Network where
 import qualified Activation as A (Activation(..), derivate, forward)
 import qualified Data.Vector as DV (Vector(..), zipWith)
 import qualified Data.List as DL (zip4)
+import qualified Dataset as D (Dataset(..))
 import qualified Loss as L (derivate, forward, Loss(..))
-import qualified Matrix as M (empty, fromLayersList, fromVectors, Matrix(..), multiplyVectorL, multiplyVectorR, transpose)
+import qualified Matrix as M (empty, fromList, fromVectors, Matrix(..), multiplyVectorL, multiplyVectorR, transpose)
 import qualified Optimizer as O (apply, Optimizer(..))
 import qualified System.Random as SR (StdGen(..))
 
@@ -66,21 +67,20 @@ forwardStep input (Network (activation:activations) (weight:weights)) = do
 fromList :: [Int] -> [A.Activation] -> SR.StdGen -> Either String (Network Double)
 fromList layers activations generator
     | length layers - 1 /= length activations = Left "Mismatching dimensions between layers and activations."
-    | otherwise = Right $ Network activations (M.fromLayersList layers generator)
+    | otherwise = Right $ Network activations (M.fromList layers generator)
 
 train :: (RealFloat a) =>
          O.Optimizer a                      -- ^ Optimizer
          -> L.Loss                          -- ^ Loss function
-         -> [DV.Vector a]                   -- ^ Training set
-         -> [DV.Vector a]                   -- ^ Targets
+         -> D.Dataset a                     -- ^ Dataset to train on
          -> Network a                       -- ^ Current Network
          -> Either String (Network a, [a])  -- ^ Trained network and list of loss values
-train _ _ [] _ network = Right (network, [])
-train _ _ _ [] network = Right (network, [])
-train optimizer loss (datapoint:trainingSet) (target:targets) network = do
+train _ _ (D.Dataset [] _) network = Right (network, [])
+train _ _ (D.Dataset _ []) network = Right (network, [])
+train optimizer loss (D.Dataset (datapoint:datapoints) (target:targets)) network = do
     forwardResult <- forward datapoint network
     gradients <- backward network forwardResult target loss
     newNetwork <- O.apply network gradients optimizer
-    (lastNetwork, losses) <- train optimizer loss trainingSet targets newNetwork
+    (lastNetwork, losses) <- train optimizer loss (D.Dataset datapoints targets) newNetwork
     let lossValue = L.forward loss (last $ layerOutputs forwardResult) target
     return (lastNetwork, lossValue:losses)

@@ -33,10 +33,12 @@ equal precision (Matrix firstRows firstColumns firstVector) (Matrix secondRows s
 fromColumnVector :: DV.Vector a -> Matrix a
 fromColumnVector vector = Matrix (DV.length vector) 1 vector
 
-fromLayersList :: [Int] -> R.StdGen -> [Matrix Double]
-fromLayersList [] _ = []
-fromLayersList [x] _ = []
-fromLayersList (x:y:xs) generator = Matrix y x randomVector : fromLayersList (y:xs) secondGenerator
+fromList :: [Int]               -- ^ List of number or neurons per layer
+            -> R.StdGen         -- ^ Random generator
+            -> [Matrix Double]  -- ^ Matrix with the specified layers and random weights
+fromList [] _ = []
+fromList [x] _ = []
+fromList (x:y:xs) generator = Matrix y x randomVector : fromList (y:xs) secondGenerator
   where
     (firstGenerator, secondGenerator) = R.split generator
     randomVector = U.generateVector (x * y) firstGenerator
@@ -44,7 +46,10 @@ fromLayersList (x:y:xs) generator = Matrix y x randomVector : fromLayersList (y:
 fromRowVector :: DV.Vector a -> Matrix a
 fromRowVector vector = Matrix 1 (DV.length vector) vector
 
-fromVectors :: RealFloat a => DV.Vector a -> DV.Vector a -> Matrix a
+fromVectors :: RealFloat a =>
+               DV.Vector a      -- ^ Column vector
+               -> DV.Vector a   -- ^ Row vector
+               -> Matrix a      -- ^ Matrix resulting from the multiplication of both vectors.
 fromVectors firstVector secondVector = Matrix (length firstVector) (length secondVector) (firstVector >>= \x -> fmap (*x) secondVector)
 
 generate :: Int -> Int -> ((Int, Int) -> a) -> Matrix a

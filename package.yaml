@@ -25,6 +25,9 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
+    - bytestring
+    - cereal
+    - cereal-vector
     - random 
     - vector
 
@@ -39,9 +42,8 @@ executables:
     dependencies:
     - bytestring
     - binary
-    - cereal
-    - cereal-vector
     - vector
+    - yahnn
   yahnn-exe:
     main: Main.hs
     source-dirs: app
@@ -51,8 +53,8 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - random
-    - yahnn
     - vector
+    - yahnn
 
 tests:
   yahnn-test:
