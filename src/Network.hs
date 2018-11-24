@@ -83,4 +83,4 @@ train optimizer loss (datapoint:trainingSet) (target:targets) network = do
     newNetwork <- O.apply network gradients optimizer
     (lastNetwork, losses) <- train optimizer loss trainingSet targets newNetwork
     let lossValue = L.forward loss (last $ layerOutputs forwardResult) target
-    Right (lastNetwork, lossValue:losses)
+    return (lastNetwork, lossValue:losses)
