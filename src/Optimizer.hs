@@ -2,7 +2,7 @@ module Optimizer where
 
 import qualified Control.Monad as CM (zipWithM)
 import qualified Matrix as M (addMatrices, Matrix(..))
-import qualified Network as N (Network(..))
+import {-# SOURCE #-} qualified Network as N (Network(..))
 
 data Optimizer a = SGD { momentum :: a, learningRate :: a } deriving (Eq, Show)
 

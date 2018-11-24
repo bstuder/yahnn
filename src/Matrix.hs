@@ -5,11 +5,11 @@ import qualified Data.Vector as DV (and, backpermute, fromList, generate, length
 import qualified System.Random as R (StdGen(..), split)
 import qualified Utils as U (chunksOf, dotProduct, generateVector)
 
-data Matrix a = Matrix
-    { rows :: !Int
-    , columns :: !Int
-    , vector :: DV.Vector a
-    } deriving (Eq, Show)
+data Matrix a = Matrix {
+    rows :: !Int,
+    columns :: !Int,
+    vector :: DV.Vector a
+} deriving (Eq, Show)
 
 instance Functor Matrix where
     fmap function (Matrix rows columns vector) = Matrix rows columns $ DV.map function vector
