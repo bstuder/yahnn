@@ -18,5 +18,4 @@ main = do
             DV.fromList [-7, -2, -4, 3, 0, 0, -4, 1, 5, 5]
             ]
     let network = N.fromList [10, 5, 2, 5, 10] [A.ReLu, A.ReLu, A.ReLu, A.ReLu] generator
-    let result = N.train (O.SGD 1 0.01) L.MSE dataset dataset <$> network
-    print result
+    print $ network >>= N.train (O.SGD 1 0.01) L.MSE dataset dataset
