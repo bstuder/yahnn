@@ -11,5 +11,5 @@ forward TanH = fmap tanh
 
 derivate :: (RealFloat a) => Activation -> DV.Vector a -> DV.Vector a
 derivate ReLu = fmap (\x -> if x < 0 then 0 else 1)
-derivate Sigmoid = fmap (\x -> 1 / (2 + exp(x) + exp(-x)))
+derivate Sigmoid = fmap (\x -> 1 / (2 + exp x + exp (-x)))
 derivate TanH = fmap (\x -> 1 - (tanh x) ** 2)

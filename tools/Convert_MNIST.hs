@@ -19,14 +19,14 @@ parseData = do
     rows <- DBG.getInt32be
     columns <- DBG.getInt32be
     rawData <- DBG.getLazyByteString $ fromIntegral (numberOfItems * rows * columns)
-    return $! fmap (DV.fromList) $ chunksOf (fromIntegral (rows * columns)) $ DBL.unpack rawData
+    return $! DV.fromList <$> chunksOf (fromIntegral (rows * columns)) (DBL.unpack rawData)
 
 parseLabels :: DBG.Get [DV.Vector GW.Word8]
 parseLabels = do
     magicNumber <- DBG.getInt32be
     numberOfItems <- DBG.getInt32be
     rawData <- DBG.getLazyByteString $ fromIntegral numberOfItems
-    return $! fmap (DV.singleton) $ DBL.unpack rawData
+    return $! DV.singleton <$> DBL.unpack rawData
 
 main :: IO ()
 main = do

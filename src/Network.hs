@@ -25,7 +25,7 @@ backward :: (RealFloat a) =>
          -> DV.Vector a                         -- ^ Target vector
          -> L.Loss                              -- ^ Loss function
          -> Either String [M.Matrix a]          -- ^ List of gradient matrices
-backward (Network activations weights) (ForwardResult layerInputs layerOutputs) target loss = do
+backward (Network activations weights) (ForwardResult layerInputs layerOutputs) target loss =
     fmap (fst <$>) eitherResult
     where
         eitherResult = sequence $ init $ scanr computeBackwardStep propagation (DL.zip4 layerInputs activations weights (init layerOutputs))
@@ -56,7 +56,7 @@ forward input network  = do
 
 forwardStep :: (RealFloat a) =>
                DV.Vector a
-               -> Network a                                     
+               -> Network a
                -> Either String [(DV.Vector a, DV.Vector a)]    -- ^ Inputs and outputs of the current layer.
 forwardStep input (Network [] []) = Right []
 forwardStep input (Network (activation:activations) (weight:weights)) = do
