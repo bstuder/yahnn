@@ -51,9 +51,9 @@ testMatrix =
             matrix `M.multiplyMatrices` M.Matrix 2 2 (DV.fromList [1, 1, 1, 1]) `TH.shouldSatisfy` DE.isLeft
         TH.it "Transpose of matrices" $
             M.transpose matrix `TH.shouldBe` M.Matrix 3 2 (DV.fromList [-2, 1, 3, -8, 6, -9])
-        TH.it "Transpose twice is the identity" $
+        TH.it "Transpose of a matrix twice" $
             TQ.property $ \m -> M.transpose (M.transpose m) == (m :: M.Matrix Int)
-        TH.it "Multiplication between matrix and itself transposed" $
+        TH.it "Multiplication of a matrix and its transposed" $
             TQ.property $ \m -> DE.isRight (m `M.multiplyMatrices` M.transpose (m :: M.Matrix Double))
         TH.it "Equality between matrices with tolerance" $ do
             matrix `TH.shouldSatisfy` M.equal 0 matrix
@@ -70,11 +70,11 @@ testActivation =
 testNetwork =
     TH.describe "Test of network functions:" $ do
         TH.it "Generation of a random network" $ do
-            N.fromList [3, 2, 1] [A.ReLu, A.Sign] generator `TH.shouldBe` Right (N.Network [A.ReLu, A.Sign] [
+            N.fromList [3, 2, 1] [A.ReLu, A.TanH] generator `TH.shouldBe` Right (N.Network [A.ReLu, A.TanH] [
                 M.Matrix 2 3 $ DV.fromList [1.9543818196252394e-2, -8.256066438750898e-2, 0.30326905954505934, 0.3728469630471347, -0.40816135066028125, -0.7351927684114008],
                 M.Matrix 1 2 $ DV.fromList [9.31527772916203e-2, -4.6601584116810146e-2]
                 ])
-            N.fromList [3, 2] [A.ReLu, A.Sign] generator `TH.shouldSatisfy` DE.isLeft
+            N.fromList [3, 2] [A.ReLu, A.TanH] generator `TH.shouldSatisfy` DE.isLeft
 
         let forwardResult = N.forward vector network
 

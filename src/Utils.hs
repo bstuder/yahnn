@@ -1,6 +1,6 @@
 module Utils where
 
-import qualified Data.Vector as DV (cons, drop, empty, fromListN, null, take, Vector(..), zipWith)
+import qualified Data.Vector as DV (cons, drop, empty, fromListN, maximum, minimum, null, take, Vector(..), zipWith)
 import qualified System.Random as SR (randomRs, StdGen(..))
 
 chunksOf :: Int -> DV.Vector a -> DV.Vector (DV.Vector a)
@@ -14,3 +14,12 @@ dotProduct firstVector secondVector = sum $ DV.zipWith (*) firstVector secondVec
 
 generateVector :: Int -> SR.StdGen -> DV.Vector Double
 generateVector n = DV.fromListN n . SR.randomRs (-1.0, 1.0)
+
+normalizeVector :: (RealFloat a) => DV.Vector a -> DV.Vector a
+normalizeVector vector =
+    if  maximum == minimum
+        then vector
+        else (\x -> (2 * x - maximum - minimum) / (maximum - minimum)) <$> vector
+    where
+        maximum = DV.maximum vector
+        minimum = DV.minimum vector

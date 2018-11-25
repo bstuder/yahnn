@@ -1,11 +1,11 @@
 module Main where
 
-import qualified Data.Binary.Get as DBG
-import qualified Data.ByteString.Lazy as DBL
+import qualified Data.Binary.Get as DBG (Get(..), getInt32be, getLazyByteString, runGet)
+import qualified Data.ByteString.Lazy as DBL (readFile, unpack, writeFile)
 import qualified Data.Vector as DV (fromList, singleton, Vector(..))
 import qualified Dataset as D (Dataset(..), fromLists, toByteString)
 import qualified GHC.Word as GW (Word8(..))
-import qualified System.Exit as SE
+import qualified System.Exit as SE (die)
 
 chunksOf :: Int -> [a] -> [[a]]
 chunksOf length list
@@ -32,12 +32,12 @@ parseLabels = do
 main :: IO ()
 main = do
     print "Start trainset conversion."
-    input <- DBL.readFile "data/MNIST/train_data"
+    input <- DBL.readFile "data/MNIST/training_data"
     let datapoints = DBG.runGet parseData input
-    input <- DBL.readFile "data/MNIST/train_labels"
+    input <- DBL.readFile "data/MNIST/training_labels"
     let labels = DBG.runGet parseLabels input
     let dataset = D.fromLists datapoints labels
-    either SE.die (DBL.writeFile "data/MNIST/trainset" . D.toByteString) dataset
+    either SE.die (DBL.writeFile "data/MNIST/training_set" . D.toByteString) dataset
     print "Trainset conversion finished."
 
     print "Start testset conversion."
@@ -46,5 +46,5 @@ main = do
     input <- DBL.readFile "data/MNIST/test_labels"
     let labels = DBG.runGet parseLabels input
     let dataset = D.fromLists datapoints labels
-    either SE.die (DBL.writeFile "data/MNIST/testset" . D.toByteString) dataset
+    either SE.die (DBL.writeFile "data/MNIST/test_set" . D.toByteString) dataset
     print "Testset conversion finished."

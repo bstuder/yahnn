@@ -52,6 +52,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - bytestring
     - random
     - vector
     - yahnn

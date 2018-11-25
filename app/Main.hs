@@ -1,23 +1,28 @@
 module Main where
 
 import qualified Activation as A (Activation(..))
+import qualified Data.ByteString.Lazy as DBL (readFile)
 import qualified Data.Vector as DV (fromList)
-import qualified Dataset as D (Dataset(..))
+import qualified Dataset as D (Dataset(..), fromByteString, normalize, NormalizationFlag(..))
 import qualified Loss as L (Loss(..))
 import qualified Network as N (fromList, Network(..), train)
 import qualified Optimizer as O (Optimizer(..))
+import qualified System.Exit as SE (die)
 import qualified System.Random as SR (mkStdGen)
 
 main :: IO ()
 main = do
+    print "Just do it !"
+
+    {-print "Read the training set..."
+    let dataset = do
+            input <- DBL.readFile "data/MNIST/training_set"
+            return $ D.normalize D.Datapoints $ D.fromByteString input
+
+    print "Train the network..."
     let generator = SR.mkStdGen 12345
-    let datapoints = [
-            DV.fromList [1, -3, 2, 7, 12, 5, 2, 6, -5, 0],
-            DV.fromList [8, 1, -5, 4, -3, -8, 4, 4, 0, 7],
-            DV.fromList [-1, 7, 3, 0, -5, -3, 7, 6, -1, 4],
-            DV.fromList [0, -2, 4, 9, -2, -4, 3, -5, -7, 4],
-            DV.fromList [-7, -2, -4, 3, 0, 0, -4, 1, 5, 5]
-            ]
-    let dataset = D.Dataset datapoints datapoints
-    let network = N.fromList [10, 5, 2, 5, 10] [A.ReLu, A.ReLu, A.ReLu, A.TanH] generator
-    print $ network >>= N.train (O.SGD 1 0.01) L.MSE dataset
+    let (trainedNetwork, losses) = do
+            network <- N.fromList [28 * 28, 300, 10] [A.Sigmoid, A.Sigmoid, A.Sigmoid] generator
+            return $ N.train (O.SGD 1 0.01) L.MSE dataset network
+
+    print "Finished..."-}
