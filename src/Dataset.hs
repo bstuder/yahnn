@@ -18,8 +18,11 @@ instance (DS.Serialize a) => DS.Serialize (Dataset a)
 {-normalize :: (RealFloat a) => Dataset a -> Dataset a
 normalize dataset = ...-}
 
-fromByteString :: (DS.Serialize a) => DBL.ByteString -> Either String (Dataset a)
-fromByteString = DS.decodeLazy
+fromByteString :: (RealFloat a, DS.Serialize a) => DBL.ByteString -> Either String (Dataset a)
+fromByteString byteString = do
+    (Dataset datapoints targets) <- DS.decodeLazy byteString
+    return $ Dataset (convertList datapoints) (convertList targets)
+    where convertList = fmap (fromInteger <$>)
 
 fromLists :: [DV.Vector a] -> [DV.Vector a] -> Either String (Dataset a)
 fromLists datapoints targets
