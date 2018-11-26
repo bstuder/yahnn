@@ -4,10 +4,9 @@ module Dataset where
 
 import qualified Data.ByteString.Lazy as DBL
 import qualified Data.Serialize as DS (decodeLazy, encodeLazy, Serialize)
-import qualified Data.Vector as DV (length, Vector(..))
+import qualified Data.Vector as DV (length, maximum, minimum, Vector(..))
 import qualified Data.Vector.Serialize as DVS (genericGetVector, genericPutVector)
 import qualified GHC.Generics as GG (Generic(..))
-import qualified Utils as U (normalizeVector)
 
 data Dataset a = Dataset {
     datapoints :: [DV.Vector a],
@@ -32,12 +31,19 @@ fromLists datapoints targets
 normalize :: (RealFloat a) => NormalizationFlag -> Dataset a -> Dataset a
 normalize flag (Dataset datapoints targets) = Dataset newDatapoints newTargets
     where
-    newDatapoints = if (flag == Both) || (flag == Datapoints)
-        then U.normalizeVector <$> datapoints
-        else datapoints
-    newTargets = if (flag == Both) || (flag == Targets)
-        then U.normalizeVector <$> targets
-        else targets
+        newDatapoints = if (flag == Both) || (flag == Datapoints)
+            then normalizeVectors datapoints
+            else datapoints
+        newTargets = if (flag == Both) || (flag == Targets)
+            then normalizeVectors targets
+            else targets
+        normalizeVectors vectors = normalizeVector upperBound lowerBound <$> vectors
+            where
+                upperBound = maximum $ DV.maximum <$> vectors
+                lowerBound = minimum $ DV.minimum <$> vectors
+                normalizeVector upperBound lowerBound vector= if upperBound == lowerBound
+                    then const 1 <$> vector
+                    else (\x -> (2 * x - upperBound - lowerBound) / (upperBound - lowerBound)) <$> vector
 
 toByteString :: (DS.Serialize a) => Dataset a -> DBL.ByteString
 toByteString = DS.encodeLazy
