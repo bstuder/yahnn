@@ -10,4 +10,4 @@ apply :: (RealFloat a) => N.Network a -> [M.Matrix a] -> Optimizer a -> Either S
 apply (N.Network activations weights) gradients (SGD momentum learningRate) =
     N.Network activations <$> CM.zipWithM applyGradient weights gradients
       where
-          applyGradient weight gradient = M.addMatrices (fmap (*momentum) weight) (fmap (*(-1 * learningRate)) gradient)
+          applyGradient weight gradient = M.addMatrices ((*momentum) <$> weight) ((*(-1 * learningRate)) <$> gradient)
