@@ -28,7 +28,7 @@ instance TQ.Arbitrary a => TQ.Arbitrary (M.Matrix a) where
         return $ M.Matrix rows columns vector
 
 testUtils =
-    TH.describe "Test of utility functions:" $ do
+    TH.describe "Test of utility functions:" $
         TH.it "Chunk of a vector" $ do
             U.chunksOf 5 (DV.empty :: DV.Vector Int) `TH.shouldBe` DV.empty
             U.chunksOf 2 vector `TH.shouldBe` DV.fromList (fmap DV.fromList [[-2, 3], [6, 1], [-8, -9]])
@@ -60,6 +60,11 @@ testMatrix =
             matrix `TH.shouldSatisfy` not . M.equal 0 (M.transpose matrix)
             matrix `TH.shouldSatisfy` not . M.equal 0.1 (M.Matrix 2 3 $ DV.fromList [-2, 3, 6+0.11, 1, -8, -9])
             matrix `TH.shouldSatisfy` M.equal 0.2 (M.Matrix 2 3 $ DV.fromList [-2.15, 3.19, 5.9, 1.2, -8.2, -9])
+        TH.it "Equality between matrices and diagonal matrices" $ do
+            let diag = DV.fromList [-1, 0, 2, 0]
+            M.Matrix 2 2 diag `TH.shouldBe` M.MatrixDiagonal 2 2 diag
+        TH.it "Diagonal Extraction" $
+            M.diagonal matrix `TH.shouldBe` DV.fromList [-2, -8]
 
 testActivation =
     TH.describe "Test of activation functions:" $

@@ -1,15 +1,29 @@
+{-# LANGUAGE PatternSynonyms #-}
+
 module Matrix where
 
 import qualified Data.List as DL (transpose)
-import qualified Data.Vector as DV (and, backpermute, fromList, generate, length, map, Vector(..), zipWith)
+import qualified Data.Vector as DV (and, backpermute, fromList, generate, length, map, Vector(..), zipWith, zip)
 import qualified System.Random as R (StdGen(..), split)
 import qualified Utils as U (chunksOf, dotProduct, generateVector)
 
-data Matrix a = Matrix {
-    rows :: !Int,
-    columns :: !Int,
-    vector :: DV.Vector a
-} deriving (Eq, Show)
+data Matrix a = FullMatrix {
+    rows       :: !Int,
+    columns    :: !Int,
+    vector     :: DV.Vector a,
+    isDiagonal :: Bool
+} deriving (Show)
+
+instance (Eq a) => Eq (Matrix a) where {
+    (FullMatrix rowsL columnsL vectorL _) == (FullMatrix rowsR columnsR vectorR _) =
+        rowsL == rowsR && columnsL == columnsR && vectorL == vectorR
+}
+
+pattern Matrix rows columns vectors = FullMatrix rows columns vectors False
+pattern MatrixDiagonal rows columns vector = FullMatrix rows columns vector True
+
+diagonal :: Matrix a -> DV.Vector a
+diagonal (Matrix rows columns vector) = vector `DV.backpermute` DV.fromList (fmap (*(1 + columns)) [0, rows-1])
 
 instance Functor Matrix where
     fmap function (Matrix rows columns vector) = Matrix rows columns $ DV.map function vector
@@ -59,10 +73,15 @@ generate rows columns function =
 multiplyMatrices :: RealFloat a => Matrix a -> Matrix a -> Either String (Matrix a)
 multiplyMatrices leftMatrix rightMatrix
     | columns leftMatrix /= rows rightMatrix = Left "Mismatching dimensions between both matrices"
-    | otherwise = Right $ Matrix (rows leftMatrix) (columns rightMatrix) newVector
+    | otherwise = Right $ case (leftMatrix, rightMatrix) of
+        (MatrixDiagonal _ _ vecL, MatrixDiagonal _ _ vecR) -> MatrixDiagonal newRows newColumns (DV.zipWith (*) vecL vecR)
+        (MatrixDiagonal{}       , Matrix{})                -> Matrix newRows newColumns (newDiagVector leftMatrix rightMatrix)
+        (Matrix{}               , MatrixDiagonal{})        -> Matrix newRows newColumns (newDiagVector rightMatrix leftMatrix)
+        _                                                  -> Matrix newRows newColumns newVector
   where
-    newVector = toRows leftMatrix >>= \row -> U.dotProduct row <$> rightColumns
-    rightColumns = toColumns rightMatrix
+    (newRows, newColumns)     = (rows leftMatrix, columns rightMatrix)
+    newVector                 = toRows leftMatrix >>= \row -> U.dotProduct row <$> toColumns rightMatrix
+    newDiagVector matDiag mat = DV.zip (diagonal matDiag) (toRows mat) >>= \(d,row) -> (*d) <$> row
 
 multiplyVectorL :: (RealFloat a) => DV.Vector a -> Matrix a -> Either String (DV.Vector a)
 multiplyVectorL vector matrix
