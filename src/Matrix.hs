@@ -22,8 +22,10 @@ instance (Eq a) => Eq (Matrix a) where {
 pattern Matrix rows columns vectors = FullMatrix rows columns vectors False
 pattern MatrixDiagonal rows columns vector = FullMatrix rows columns vector True
 
+-- |Extract the (main) diagonal of any Matrix
 diagonal :: Matrix a -> DV.Vector a
-diagonal (Matrix rows columns vector) = vector `DV.backpermute` DV.fromList (fmap (*(1 + columns)) [0, rows-1])
+diagonal (Matrix rows columns vector) = DV.backpermute vector indexs
+  where indexs = DV.fromList $ (*(1 + columns)) <$> [0, (min rows columns) - 1]
 
 instance Functor Matrix where
     fmap function (Matrix rows columns vector) = Matrix rows columns $ DV.map function vector
@@ -73,11 +75,11 @@ generate rows columns function =
 multiplyMatrices :: RealFloat a => Matrix a -> Matrix a -> Either String (Matrix a)
 multiplyMatrices leftMatrix rightMatrix
     | columns leftMatrix /= rows rightMatrix = Left "Mismatching dimensions between both matrices"
-    | otherwise = Right $ case (leftMatrix, rightMatrix) of
-        (MatrixDiagonal _ _ vecL, MatrixDiagonal _ _ vecR) -> MatrixDiagonal newRows newColumns (DV.zipWith (*) vecL vecR)
-        (MatrixDiagonal{}       , Matrix{})                -> Matrix newRows newColumns (newDiagVector leftMatrix rightMatrix)
-        (Matrix{}               , MatrixDiagonal{})        -> Matrix newRows newColumns (newDiagVector rightMatrix leftMatrix)
-        _                                                  -> Matrix newRows newColumns newVector
+    | otherwise = case (leftMatrix, rightMatrix) of
+        (MatrixDiagonal _ _ vecL, MatrixDiagonal _ _ vecR) -> Right $ MatrixDiagonal newRows newColumns (DV.zipWith (*) vecL vecR)
+        (MatrixDiagonal{}       , Matrix{})                -> Right $ Matrix newRows newColumns (newDiagVector leftMatrix rightMatrix)
+        (Matrix{}               , MatrixDiagonal{})        -> transpose <$> rightMatrix `multiplyMatrices` transpose leftMatrix
+        _                                                  -> Right $ Matrix newRows newColumns newVector
   where
     (newRows, newColumns)     = (rows leftMatrix, columns rightMatrix)
     newVector                 = toRows leftMatrix >>= \row -> U.dotProduct row <$> toColumns rightMatrix

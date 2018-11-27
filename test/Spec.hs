@@ -63,8 +63,9 @@ testMatrix =
         TH.it "Equality between matrices and diagonal matrices" $ do
             let diag = DV.fromList [-1, 0, 2, 0]
             M.Matrix 2 2 diag `TH.shouldBe` M.MatrixDiagonal 2 2 diag
-        TH.it "Diagonal Extraction" $
+        TH.it "Diagonal Extraction" $ do
             M.diagonal matrix `TH.shouldBe` DV.fromList [-2, -8]
+            M.diagonal (M.transpose matrix) `TH.shouldBe` DV.fromList [-2, -8]
 
 testActivation =
     TH.describe "Test of activation functions:" $
