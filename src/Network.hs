@@ -77,7 +77,7 @@ forwardStep input (Network (activation:activations) (weight:weights)) = do
 fromLists :: [A.Activation] -> [M.Matrix a] -> Either String (Network a)
 fromLists activations weights
     | length activations /= length weights = Left "Mismatching dimensions between layers and weights."
-    -- | test matrix consistency
+    -- #TODO: test matrices's dimensions consistency
     | otherwise = Right $ unsafeFromLists activations weights
 
 random :: [Int] -> [A.Activation] -> SR.StdGen -> Either String (Network Double)
