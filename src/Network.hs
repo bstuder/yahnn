@@ -1,4 +1,14 @@
-module Network where
+module Network
+(
+    backward,
+    forward,
+    ForwardResult(..),
+    fromLists,
+    Network,
+    random,
+    train,
+    unsafeFromLists
+) where
 
 import qualified Activation as A (Activation(..), derivate, forward)
 import qualified Data.Vector as DV (Vector(..), zipWith)
@@ -6,7 +16,7 @@ import qualified Data.List as DL (zip4)
 import qualified Dataset as D (Dataset(..))
 import qualified Loss as L (derivate, forward, Loss(..))
 import qualified Matrix as M (empty, fromLayers, fromVectors, Matrix, multiplyVectorL, multiplyVectorR, transpose)
-import qualified Optimizer as O (apply, Optimizer(..))
+import qualified Optimizer as O (optimize, Optimizer(..))
 import qualified System.Random as SR (StdGen(..))
 
 data ForwardResult a = ForwardResult {
@@ -86,7 +96,7 @@ train _ _ (D.Dataset _ []) network = Right (network, [])
 train optimizer loss (D.Dataset (datapoint:datapoints) (target:targets)) network = do
     forwardResult <- forward datapoint network
     gradients <- backward network forwardResult target loss
-    newNetwork <- O.apply network gradients optimizer
+    newNetwork <- Network (activations network) <$> O.optimize (weights network) gradients optimizer
     (lastNetwork, losses) <- train optimizer loss (D.Dataset datapoints targets) newNetwork
     let lossValue = L.forward loss (last $ layerOutputs forwardResult) target
     return (lastNetwork, lossValue:losses)
