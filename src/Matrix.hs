@@ -1,6 +1,28 @@
 {-# LANGUAGE PatternSynonyms #-}
 
-module Matrix where
+module Matrix 
+(
+    addMatrices,
+    applyRow,
+    diagonal,
+    empty,
+    equal,
+    fromColumnVector,
+    fromLayers,
+    fromList,
+    fromRowVector,
+    fromVectors,
+    generate,
+    Matrix,
+    multiplyMatrices,
+    multiplyVectorL,
+    multiplyVectorR,
+    showSize,
+    toRows,
+    toColumns,
+    transpose,
+    unsafeFromList
+) where
 
 import qualified Data.List as DL (transpose)
 import qualified Data.Vector as DV (and, backpermute, fromList, generate, length, map, Vector(..), zipWith, zip)
@@ -22,11 +44,6 @@ instance (Eq a) => Eq (Matrix a) where {
 pattern Matrix rows columns vectors = FullMatrix rows columns vectors False
 pattern MatrixDiagonal rows columns vector = FullMatrix rows columns vector True
 
--- |Extract the (main) diagonal of any Matrix
-diagonal :: Matrix a -> DV.Vector a
-diagonal (Matrix rows columns vector) = DV.backpermute vector indexs
-  where indexs = DV.fromList $ (*(1 + columns)) <$> [0, (min rows columns) - 1]
-
 instance Functor Matrix where
     fmap function (Matrix rows columns vector) = Matrix rows columns $ DV.map function vector
 
@@ -41,6 +58,10 @@ applyRow function = fmap function . toRows
 empty :: Matrix a
 empty = Matrix 0 0 mempty
 
+diagonal :: Matrix a -> DV.Vector a
+diagonal (Matrix rows columns vector) = DV.backpermute vector indexes
+    where indexes = DV.fromList $ (*(1 + columns)) <$> [0, (min rows columns) - 1]
+
 equal :: RealFloat a => a -> Matrix a -> Matrix a -> Bool
 equal precision (Matrix firstRows firstColumns firstVector) (Matrix secondRows secondColumns secondVector)
     | (firstRows, firstColumns) /= (secondRows, secondColumns) = False
@@ -49,15 +70,20 @@ equal precision (Matrix firstRows firstColumns firstVector) (Matrix secondRows s
 fromColumnVector :: DV.Vector a -> Matrix a
 fromColumnVector vector = Matrix (DV.length vector) 1 vector
 
-fromList :: [Int]               -- ^ List of number or neurons per layer
+fromLayers :: [Int]             -- ^ List of number or neurons per layer
             -> R.StdGen         -- ^ Random generator
             -> [Matrix Double]  -- ^ Matrix with the specified layers and random weights
-fromList [] _ = []
-fromList [x] _ = []
-fromList (x:y:xs) generator = Matrix y x randomVector : fromList (y:xs) secondGenerator
+fromLayers [] _ = []
+fromLayers [x] _ = []
+fromLayers (x:y:xs) generator = Matrix y x randomVector : fromLayers (y:xs) secondGenerator
   where
     (firstGenerator, secondGenerator) = R.split generator
     randomVector = U.generateVector (x * y) firstGenerator
+
+fromList :: RealFloat a => Int -> Int -> [a] -> Either String (Matrix a)
+fromList rows columns list
+    | rows * columns /= length list = Left "Mismatch between dimensions and list length"
+    | otherwise = Right $ Matrix rows columns $ DV.fromList list
 
 fromRowVector :: DV.Vector a -> Matrix a
 fromRowVector vector = Matrix 1 (DV.length vector) vector
@@ -109,3 +135,6 @@ transpose (Matrix rows columns vector) = Matrix columns rows transposedVector
   where
     transposedVector = DV.backpermute vector (DV.fromList newIndexes)
     newIndexes = concat . DL.transpose . take rows . iterate (fmap (+columns)) $ [0 .. columns - 1]
+
+unsafeFromList :: RealFloat a => Int -> Int -> [a] -> Matrix a
+unsafeFromList rows columns list = Matrix rows columns $ DV.fromList list

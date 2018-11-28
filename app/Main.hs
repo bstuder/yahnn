@@ -5,7 +5,7 @@ import qualified Data.ByteString.Lazy as DBL (readFile)
 import qualified Data.Vector as DV (fromList)
 import qualified Dataset as D (Dataset(..), fromByteString, normalize, NormalizationFlag(..))
 import qualified Loss as L (Loss(..))
-import qualified Network as N (fromList, Network(..), train)
+import qualified Network as N (Network(..), random, train)
 import qualified Optimizer as O (Optimizer(..))
 import qualified System.Exit as SE (die)
 import qualified System.Random as SR (mkStdGen)
@@ -22,7 +22,7 @@ main = do
     print "Train the network..."
     let generator = SR.mkStdGen 12345
     let (trainedNetwork, losses) = do
-            network <- N.fromList [28 * 28, 300, 10] [A.Sigmoid, A.Sigmoid, A.Sigmoid] generator
+            network <- N.random [28 * 28, 300, 10] [A.Sigmoid, A.Sigmoid, A.Sigmoid] generator
             return $ N.train (O.SGD 1 0.01) L.MSE dataset network
 
     print "Finished..."-}

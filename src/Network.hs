@@ -5,7 +5,7 @@ import qualified Data.Vector as DV (Vector(..), zipWith)
 import qualified Data.List as DL (zip4)
 import qualified Dataset as D (Dataset(..))
 import qualified Loss as L (derivate, forward, Loss(..))
-import qualified Matrix as M (empty, fromList, fromVectors, Matrix(..), multiplyVectorL, multiplyVectorR, transpose)
+import qualified Matrix as M (empty, fromLayers, fromVectors, Matrix, multiplyVectorL, multiplyVectorR, transpose)
 import qualified Optimizer as O (apply, Optimizer(..))
 import qualified System.Random as SR (StdGen(..))
 
@@ -64,10 +64,16 @@ forwardStep input (Network (activation:activations) (weight:weights)) = do
     let output = A.forward activation activationInput
     ((activationInput, output) :) <$> forwardStep output (Network activations weights)
 
-fromList :: [Int] -> [A.Activation] -> SR.StdGen -> Either String (Network Double)
-fromList layers activations generator
+fromLists :: [A.Activation] -> [M.Matrix a] -> Either String (Network a)
+fromLists activations weights
+    | length activations /= length weights = Left "Mismatching dimensions between layers and weights."
+    -- | test matrix consistency
+    | otherwise = Right $ Network activations weights
+
+random :: [Int] -> [A.Activation] -> SR.StdGen -> Either String (Network Double)
+random layers activations generator
     | length layers - 1 /= length activations = Left "Mismatching dimensions between layers and activations."
-    | otherwise = Right $ Network activations (M.fromList layers generator)
+    | otherwise = Right $ Network activations (M.fromLayers layers generator)
 
 train :: (RealFloat a) =>
          O.Optimizer a                      -- ^ Optimizer
@@ -84,3 +90,6 @@ train optimizer loss (D.Dataset (datapoint:datapoints) (target:targets)) network
     (lastNetwork, losses) <- train optimizer loss (D.Dataset datapoints targets) newNetwork
     let lossValue = L.forward loss (last $ layerOutputs forwardResult) target
     return (lastNetwork, lossValue:losses)
+
+unsafeFromLists :: [A.Activation] -> [M.Matrix a] -> Network a
+unsafeFromLists activations weights = Network activations weights
