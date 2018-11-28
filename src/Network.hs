@@ -68,7 +68,7 @@ fromLists :: [A.Activation] -> [M.Matrix a] -> Either String (Network a)
 fromLists activations weights
     | length activations /= length weights = Left "Mismatching dimensions between layers and weights."
     -- | test matrix consistency
-    | otherwise = Right $ Network activations weights
+    | otherwise = Right $ unsafeFromLists activations weights
 
 random :: [Int] -> [A.Activation] -> SR.StdGen -> Either String (Network Double)
 random layers activations generator

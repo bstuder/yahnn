@@ -83,7 +83,7 @@ fromLayers (x:y:xs) generator = Matrix y x randomVector : fromLayers (y:xs) seco
 fromList :: RealFloat a => Int -> Int -> [a] -> Either String (Matrix a)
 fromList rows columns list
     | rows * columns /= length list = Left "Mismatch between dimensions and list length"
-    | otherwise = Right $ Matrix rows columns $ DV.fromList list
+    | otherwise = Right $ unsafeFromList rows columns list
 
 fromRowVector :: DV.Vector a -> Matrix a
 fromRowVector vector = Matrix 1 (DV.length vector) vector
