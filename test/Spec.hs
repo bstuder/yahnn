@@ -9,15 +9,16 @@ import qualified Test.Hspec as TH (describe, hspec, it, shouldBe, shouldSatisfy)
 import qualified Test.QuickCheck as TQ (Arbitrary(..), property, arbitrary, vector, getPositive)
 import qualified Utils as U
 
-
 vector = DV.fromList [-2, 3, 6, 1, -8, -9]
 
 firstRowVector = M.unsafeFromList 1 2 [4, -6]
 secondRowVector = M.unsafeFromList 1 2 [7, 0]
 firstColumnVector = M.unsafeFromList 2 1 [6, 4]
 secondColumnVector = M.unsafeFromList 2 1 [-1, -2]
-firstFullMatrix = M.unsafeFromList 2 2 [-2, 3, 6, 1]
-secondFullMatrix = M.unsafeFromList 2 2 [-1, -1, 5, 3]
+firstFullSquareMatrix = M.unsafeFromList 2 2 [-2, 3, 6, 1]
+secondFullSquareMatrix = M.unsafeFromList 2 2 [-1, -1, 5, 3]
+firstFullRectangularMatrix = M.unsafeFromList 3 2 [1, 8, -5, 4, -4, 0]
+secondFullRectangularMatrix = M.unsafeFromList 2 3 [0, -2, 3, 6, 1, -8]
 firstDiagonalMatrix = M.unsafeFromList 2 2 [4, -1]
 secondDiagonalMatrix = M.unsafeFromList 2 2 [5, 2]
 
@@ -46,62 +47,58 @@ testUtils =
 
 testMatrix =
     TH.describe "Test of linear algebra functions:" $ do
+        TH.it "Equality between matrices with tolerance" $ do
+            firstFullRectangularMatrix `TH.shouldSatisfy` M.equal 0 firstFullRectangularMatrix
+            firstFullRectangularMatrix `TH.shouldSatisfy` not . M.equal 0 (M.transpose firstFullRectangularMatrix)
+            firstFullRectangularMatrix `TH.shouldSatisfy` not . M.equal 0.1 (M.unsafeFromList 3 2 [1, 8, -5, 4 + 0.11, -4, 0, 2])
+            firstFullRectangularMatrix `TH.shouldSatisfy` M.equal 0.2 (M.unsafeFromList 3 2 [0.81, 8.15, -5.10, 3.92, -4.04, -0.13])
+
         TH.it "Sum of matrix rows" $
-            M.applyRow sum firstFullMatrix `TH.shouldBe` DV.fromList [1, 7]
+            M.applyRow sum firstFullSquareMatrix `TH.shouldBe` DV.fromList [1, 7]
+
+        TH.it "Transpose of matrices" $ do
+            M.transpose firstFullRectangularMatrix `TH.shouldBe` M.unsafeFromList 2 3 [1, -5, -4, 8, 4, 0]
+            M.transpose firstDiagonalMatrix `TH.shouldBe` firstDiagonalMatrix
+
+        TH.it "Transpose of a matrix twice" $
+            TQ.property $ \m -> M.transpose (M.transpose m) == (m :: M.Matrix Double)
 
         TH.it "Addition of two matrices" $ do
-            M.addMatrices firstFullMatrix secondFullMatrix `TH.shouldBe` M.fromList 2 2 [-3, 2, 11, 4]
-            M.addMatrices firstDiagonalMatrix secondFullMatrix `TH.shouldBe` M.fromList 2 2 [3, -1, 5, 2]
-            M.addMatrices firstFullMatrix secondDiagonalMatrix `TH.shouldBe` M.fromList 2 2 [3, 3, 6, 3]
+            M.addMatrices firstFullSquareMatrix secondFullSquareMatrix `TH.shouldBe` M.fromList 2 2 [-3, 2, 11, 4]
+            M.addMatrices firstDiagonalMatrix secondFullSquareMatrix `TH.shouldBe` M.fromList 2 2 [3, -1, 5, 2]
+            M.addMatrices firstFullSquareMatrix secondDiagonalMatrix `TH.shouldBe` M.fromList 2 2 [3, 3, 6, 3]
             M.addMatrices firstDiagonalMatrix secondDiagonalMatrix `TH.shouldBe` Right (M.unsafeFromList 2 2 [9, 1])
             M.addMatrices firstRowVector secondRowVector `TH.shouldBe` Right (M.unsafeFromList 1 2 [11, -6])
             M.addMatrices firstColumnVector secondColumnVector `TH.shouldBe` Right (M.unsafeFromList 2 1 [5, 2])
-            M.addMatrices firstFullMatrix secondColumnVector `TH.shouldSatisfy` DE.isLeft
+            M.addMatrices firstFullSquareMatrix secondColumnVector `TH.shouldSatisfy` DE.isLeft
             M.addMatrices firstRowVector secondDiagonalMatrix `TH.shouldSatisfy` DE.isLeft
             M.addMatrices firstRowVector secondColumnVector `TH.shouldSatisfy` DE.isLeft
 
         TH.it "Multiplication of two matrices" $ do
-            M.multiplyMatrices firstFullMatrix secondFullMatrix `TH.shouldBe` M.fromList 2 2 [17, 11, -1, -3]
-            M.multiplyMatrices firstDiagonalMatrix secondFullMatrix `TH.shouldBe` M.fromList 2 2 [-4, -4, -5, -3]
-            M.multiplyMatrices firstFullMatrix secondDiagonalMatrix `TH.shouldBe` M.fromList 2 2 [-10, 6, 30, 2]
+            M.multiplyMatrices firstFullRectangularMatrix secondFullRectangularMatrix `TH.shouldBe` M.fromList 3 3 [48, 6, -61, 24, 14, -47, 0, 8, -12]
+            M.multiplyMatrices firstFullRectangularMatrix secondFullSquareMatrix `TH.shouldBe` M.fromList 3 2 [39, 23, 25, 17, 4, 4]
+            M.multiplyMatrices firstFullSquareMatrix secondFullSquareMatrix `TH.shouldBe` M.fromList 2 2 [17, 11, -1, -3]
+            M.multiplyMatrices firstDiagonalMatrix secondFullSquareMatrix `TH.shouldBe` M.fromList 2 2 [-4, -4, -5, -3]
+            M.multiplyMatrices firstFullRectangularMatrix secondDiagonalMatrix `TH.shouldBe` M.fromList 3 2 [5, 16, -25, 8, -20, 0]
             M.multiplyMatrices firstDiagonalMatrix secondDiagonalMatrix `TH.shouldBe` Right (M.unsafeFromList 2 2 [20, -2])
             M.multiplyMatrices firstRowVector secondColumnVector `TH.shouldBe` M.fromList 1 1 [8]
             M.multiplyMatrices firstColumnVector secondRowVector `TH.shouldBe` M.fromList 2 2 [42, 0, 28, 0]
-            M.multiplyMatrices firstRowVector secondFullMatrix `TH.shouldBe` M.fromList 1 2 [-34, -22]
-            M.multiplyMatrices firstFullMatrix secondColumnVector `TH.shouldBe` M.fromList 2 1 [-4, -8]
-            M.multiplyMatrices firstFullMatrix secondRowVector `TH.shouldSatisfy` DE.isLeft
+            M.multiplyMatrices firstRowVector secondFullSquareMatrix `TH.shouldBe` M.fromList 1 2 [-34, -22]
+            M.multiplyMatrices firstFullSquareMatrix secondColumnVector `TH.shouldBe` M.fromList 2 1 [-4, -8]
+            M.multiplyMatrices firstFullSquareMatrix secondRowVector `TH.shouldSatisfy` DE.isLeft
             M.multiplyMatrices firstColumnVector secondDiagonalMatrix `TH.shouldSatisfy` DE.isLeft
 
-
-{-
         TH.it "Multiplication of two vectors" $
-            M.fromVectors vector (DV.fromList [-1, 5]) `TH.shouldBe` M.unsafeFromList 6 2 [2, -10, -3, 15, -6, 30, -1, 5, 8, -40, 9, -45]
-        TH.it "Multiplication of a vector and a matrix" $ do
-            M.multiplyVectorL (DV.fromList [-1, 5]) matrix `TH.shouldBe` Right (DV.fromList [7, -43, -51])
-            M.multiplyVectorL vector matrix `TH.shouldSatisfy` DE.isLeft
-        TH.it "Multiplication of a matrix and a vector" $ do
-            M.multiplyVectorR matrix (DV.fromList [0, -6, 3]) `TH.shouldBe` Right (DV.fromList [0, 21])
-            M.multiplyVectorR matrix vector `TH.shouldSatisfy` DE.isLeft
-        TH.it "Multiplication of two matrices" $ do
-            matrix `M.multiplyMatrices` M.unsafeFromList 3 3 [-4..4] `TH.shouldBe` M.fromList 2 3 [17, 24, 31, -14, -30, -46]
-            matrix `M.multiplyMatrices` M.unsafeFromList 2 2 [1, 1, 1, 1] `TH.shouldSatisfy` DE.isLeft
-        TH.it "Transpose of matrices" $
-            M.transpose matrix `TH.shouldBe` M.unsafeFromList 3 2 [-2, 1, 3, -8, 6, -9]
-        TH.it "Transpose of a matrix twice" $
-            TQ.property $ \m -> M.transpose (M.transpose m) == (m :: M.Matrix Double)
-        TH.it "Multiplication of a matrix and its transposed" $
-            TQ.property $ \m -> DE.isRight (m `M.multiplyMatrices` M.transpose (m :: M.Matrix Double))
-        TH.it "Equality between matrices with tolerance" $ do
-            matrix `TH.shouldSatisfy` M.equal 0 matrix
-            matrix `TH.shouldSatisfy` not . M.equal 0 (M.transpose matrix)
-            matrix `TH.shouldSatisfy` not . M.equal 0.1 (M.unsafeFromList 2 3 [-2, 3, 6+0.11, 1, -8, -9])
-            matrix `TH.shouldSatisfy` M.equal 0.2 (M.unsafeFromList 2 3 [-2.15, 3.19, 5.9, 1.2, -8.2, -9])
-        {-TH.it "Equality between matrices and diagonal matrices" $ do
-            let diagonal = DV.fromList [-1, 0, 2, 0]
-            M.Matrix 2 2 diagonal `TH.shouldBe` M.MatrixDiagonal 2 2 diagonal-}
-        TH.it "Extraction of matrix's diagonal" $ do
-            M.diagonal matrix `TH.shouldBe` DV.fromList [-2, -8]
-            M.diagonal (M.transpose matrix) `TH.shouldBe` DV.fromList [-2, -8]
+            M.fromVectors (DV.fromList [6, 4]) (DV.fromList [7, 0]) `TH.shouldBe` M.unsafeFromList 2 2 [42, 0, 28, 0]
+
+        TH.it "Multiplication of vectors and matrices" $ do
+            M.multiplyVectorL (DV.fromList [4, -6]) secondFullSquareMatrix `TH.shouldBe` Right (DV.fromList [-34, -22])
+            M.multiplyVectorL (DV.fromList [4, -6, 0]) secondDiagonalMatrix `TH.shouldSatisfy` DE.isLeft
+            M.multiplyVectorR firstFullSquareMatrix (DV.fromList [7, 0]) `TH.shouldBe` Right (DV.fromList [-14, 42])
+            M.multiplyVectorR firstFullSquareMatrix (DV.fromList [7, 0, 0]) `TH.shouldSatisfy` DE.isLeft
+
+        {-TH.it "Multiplication of a matrix and its transposed" $
+            TQ.property $ \m -> DE.isRight (m `M.multiplyMatrices` M.transpose (m :: M.Matrix Double))-}
 
 testActivation =
     TH.describe "Test of activation functions:" $
@@ -134,11 +131,10 @@ testNetwork =
                     ]
             (forwardResult >>= \justForwardResult -> N.backward network justForwardResult vector L.MSE) `TH.shouldSatisfy`
                 \backwardResult -> any (and . zipWith (M.equal 1) backwardExpected) backwardResult
--}
 
 main :: IO ()
 main = TH.hspec $ do
     testUtils
     testMatrix
-    --testActivation
-    --testNetwork
+    testActivation
+    testNetwork

@@ -4,10 +4,8 @@ module Matrix
 (
     addMatrices,
     applyRow,
-    diagonal,
     empty,
     equal,
-    fromColumnVector,
     fromLayers,
     fromList,
     fromRowVector,
@@ -48,8 +46,8 @@ instance Functor Matrix where
     fmap function (Matrix rows columns vector) = Matrix rows columns $ DV.map function vector
 
 addMatrices :: RealFloat a => Matrix a -> Matrix a -> Either String (Matrix a)
-addMatrices diagonal@(DiagonalMatrix size vector) full@(FullMatrix fullRows fullColumns fullVector) = addMatrices (toFull diagonal) full
-addMatrices full@FullMatrix{} diagonal@DiagonalMatrix{} = addMatrices diagonal full
+addMatrices full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= addMatrices full
+addMatrices diagonal@DiagonalMatrix{} full@FullMatrix{} = addMatrices full diagonal
 addMatrices (Matrix firstRows firstColumns firstVector) (Matrix secondRows secondColumns secondVector)
     | (firstRows /= secondRows) || (firstColumns /= secondColumns) = Left "Mismatching dimensions between both matrices"
     | otherwise = Right $ Matrix firstRows firstColumns $ DV.zipWith (+) firstVector secondVector
@@ -60,17 +58,10 @@ applyRow function = fmap function . toRows
 empty :: Matrix a
 empty = Matrix 0 0 mempty
 
-diagonal :: Matrix a -> DV.Vector a
-diagonal (Matrix rows columns vector) = DV.backpermute vector indexes
-    where indexes = DV.fromList $ (*(1 + columns)) <$> [0, (min rows columns) - 1]
-
 equal :: RealFloat a => a -> Matrix a -> Matrix a -> Bool
 equal precision (Matrix firstRows firstColumns firstVector) (Matrix secondRows secondColumns secondVector)
     | (firstRows, firstColumns) /= (secondRows, secondColumns) = False
     | otherwise = DV.and $ DV.zipWith (\x y -> abs (x - y) <= precision) firstVector secondVector
-
-fromColumnVector :: DV.Vector a -> Matrix a
-fromColumnVector vector = Matrix (DV.length vector) 1 vector
 
 fromLayers :: [Int]             -- ^ List of number or neurons per layer
             -> R.StdGen         -- ^ Random generator
@@ -101,17 +92,14 @@ generate rows columns function =
     Matrix rows columns $ DV.generate (rows * columns) (\indice -> function (indice `div` columns, indice `mod` columns))
 
 multiplyMatrices :: RealFloat a => Matrix a -> Matrix a -> Either String (Matrix a)
-multiplyMatrices diagonal@(DiagonalMatrix size vector) full@(FullMatrix fullRows fullColumns fullVector) = multiplyMatrices (toFull diagonal) full
-multiplyMatrices full@FullMatrix{} diagonal@DiagonalMatrix{} = multiplyMatrices full (toFull diagonal)
+multiplyMatrices full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= multiplyMatrices full
+multiplyMatrices diagonal@DiagonalMatrix{} full@FullMatrix{} = toFull diagonal >>= flip multiplyMatrices full
 multiplyMatrices (DiagonalMatrix firstSize firstVector) (DiagonalMatrix secondSize secondVector)
     | firstSize /= secondSize = Left "Mismatching dimensions between both matrices"
     | otherwise = Right $ DiagonalMatrix firstSize $ DV.zipWith (*) firstVector secondVector
 multiplyMatrices firstMatrix@(Matrix firstRows firstColumns _) secondMatrix@(Matrix secondRows secondColumns _)
     | firstColumns /= secondRows = Left "Mismatching dimensions between both matrices"
-    | otherwise = Right $ Matrix firstRows secondColumns newVector
-  where
-    newVector = toRows firstMatrix >>= \row -> U.dotProduct row <$> columns
-    columns = toColumns secondMatrix
+    | otherwise = Right $ Matrix firstRows secondColumns $ toRows firstMatrix >>= \row -> U.dotProduct row <$> toColumns secondMatrix
 
 multiplyVectorL :: (RealFloat a) => DV.Vector a -> Matrix a -> Either String (DV.Vector a)
 multiplyVectorL vector matrix
@@ -126,10 +114,11 @@ multiplyVectorR matrix vector
 showSize :: Matrix a -> String
 showSize (Matrix rows columns _) = "(" <> show rows <> "," <> show columns <> ")"
 
-toFull :: RealFloat a => Matrix a -> Matrix a
-toFull (DiagonalMatrix size vector) = generate size size (\(row, column) -> if row == column then vector DV.! row else 0)
-toFull matrix@Matrix{} = matrix
--- #TODO: toFull _ = Left "GTFO"
+toFull :: RealFloat a => Matrix a -> Either String (Matrix a)
+toFull (DiagonalMatrix size vector) = Right $ generate size size (\(row, column) -> if row == column then vector DV.! row else 0)
+toFull ColumnVector{} = Left "Cannot transform a column vector into a matrix"
+toFull RowVector{} = Left "Cannot transform a row vector into a matrix"
+toFull matrix@Matrix{} = Right matrix
 
 toRows :: Matrix a -> DV.Vector (DV.Vector a)
 toRows (Matrix _ columns vector) = U.chunksOf columns vector
@@ -138,6 +127,7 @@ toColumns :: Matrix a -> DV.Vector (DV.Vector a)
 toColumns = toRows . transpose
 
 transpose :: Matrix a -> Matrix a
+transpose diagonal@DiagonalMatrix{} = diagonal
 transpose (Matrix rows columns vector) = Matrix columns rows transposedVector
   where
     transposedVector = DV.backpermute vector (DV.fromList newIndexes)
