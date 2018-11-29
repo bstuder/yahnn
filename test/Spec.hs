@@ -9,9 +9,18 @@ import qualified Test.Hspec as TH (describe, hspec, it, shouldBe, shouldSatisfy)
 import qualified Test.QuickCheck as TQ (Arbitrary(..), property, arbitrary, vector, getPositive)
 import qualified Utils as U
 
-list = [-2, 3, 6, 1, -8, -9]
-vector = DV.fromList list
-matrix = M.unsafeFromList 2 3 list
+
+vector = DV.fromList [-2, 3, 6, 1, -8, -9]
+
+firstRowVector = M.unsafeFromList 1 2 [4, -6]
+secondRowVector = M.unsafeFromList 1 2 [7, 0]
+firstColumnVector = M.unsafeFromList 2 1 [6, 4]
+secondColumnVector = M.unsafeFromList 2 1 [-1, -2]
+firstFullMatrix = M.unsafeFromList 2 2 [-2, 3, 6, 1]
+secondFullMatrix = M.unsafeFromList 2 2 [-1, -1, 5, 3]
+firstDiagonalMatrix = M.unsafeFromList 2 2 [4, -1]
+secondDiagonalMatrix = M.unsafeFromList 2 2 [5, 2]
+
 network = N.unsafeFromLists [A.ReLu, A.ReLu, A.ReLu, A.ReLu] [
         M.unsafeFromList 3 6 [2, -1, 3, 7, -5, 1, 5, -1, 2, 1, 7, -3, 6, 4, -8, 1, -2, -4],
         M.unsafeFromList 2 3 [3, -1, 2, 2, -5, 1],
@@ -38,7 +47,33 @@ testUtils =
 testMatrix =
     TH.describe "Test of linear algebra functions:" $ do
         TH.it "Sum of matrix rows" $
-            M.applyRow sum matrix `TH.shouldBe` DV.fromList [7, -16]
+            M.applyRow sum firstFullMatrix `TH.shouldBe` DV.fromList [1, 7]
+
+        TH.it "Addition of two matrices" $ do
+            M.addMatrices firstFullMatrix secondFullMatrix `TH.shouldBe` M.fromList 2 2 [-3, 2, 11, 4]
+            M.addMatrices firstDiagonalMatrix secondFullMatrix `TH.shouldBe` M.fromList 2 2 [3, -1, 5, 2]
+            M.addMatrices firstFullMatrix secondDiagonalMatrix `TH.shouldBe` M.fromList 2 2 [3, 3, 6, 3]
+            M.addMatrices firstDiagonalMatrix secondDiagonalMatrix `TH.shouldBe` Right (M.unsafeFromList 2 2 [9, 1])
+            M.addMatrices firstRowVector secondRowVector `TH.shouldBe` Right (M.unsafeFromList 1 2 [11, -6])
+            M.addMatrices firstColumnVector secondColumnVector `TH.shouldBe` Right (M.unsafeFromList 2 1 [5, 2])
+            M.addMatrices firstFullMatrix secondColumnVector `TH.shouldSatisfy` DE.isLeft
+            M.addMatrices firstRowVector secondDiagonalMatrix `TH.shouldSatisfy` DE.isLeft
+            M.addMatrices firstRowVector secondColumnVector `TH.shouldSatisfy` DE.isLeft
+
+        TH.it "Multiplication of two matrices" $ do
+            M.multiplyMatrices firstFullMatrix secondFullMatrix `TH.shouldBe` M.fromList 2 2 [17, 11, -1, -3]
+            M.multiplyMatrices firstDiagonalMatrix secondFullMatrix `TH.shouldBe` M.fromList 2 2 [-4, -4, -5, -3]
+            M.multiplyMatrices firstFullMatrix secondDiagonalMatrix `TH.shouldBe` M.fromList 2 2 [-10, 6, 30, 2]
+            M.multiplyMatrices firstDiagonalMatrix secondDiagonalMatrix `TH.shouldBe` Right (M.unsafeFromList 2 2 [20, -2])
+            M.multiplyMatrices firstRowVector secondColumnVector `TH.shouldBe` M.fromList 1 1 [8]
+            M.multiplyMatrices firstColumnVector secondRowVector `TH.shouldBe` M.fromList 2 2 [42, 0, 28, 0]
+            M.multiplyMatrices firstRowVector secondFullMatrix `TH.shouldBe` M.fromList 1 2 [-34, -22]
+            M.multiplyMatrices firstFullMatrix secondColumnVector `TH.shouldBe` M.fromList 2 1 [-4, -8]
+            M.multiplyMatrices firstFullMatrix secondRowVector `TH.shouldSatisfy` DE.isLeft
+            M.multiplyMatrices firstColumnVector secondDiagonalMatrix `TH.shouldSatisfy` DE.isLeft
+
+
+{-
         TH.it "Multiplication of two vectors" $
             M.fromVectors vector (DV.fromList [-1, 5]) `TH.shouldBe` M.unsafeFromList 6 2 [2, -10, -3, 15, -6, 30, -1, 5, 8, -40, 9, -45]
         TH.it "Multiplication of a vector and a matrix" $ do
@@ -99,10 +134,11 @@ testNetwork =
                     ]
             (forwardResult >>= \justForwardResult -> N.backward network justForwardResult vector L.MSE) `TH.shouldSatisfy`
                 \backwardResult -> any (and . zipWith (M.equal 1) backwardExpected) backwardResult
+-}
 
 main :: IO ()
 main = TH.hspec $ do
     testUtils
     testMatrix
-    testActivation
-    testNetwork
+    --testActivation
+    --testNetwork
