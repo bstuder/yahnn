@@ -59,6 +59,7 @@ testMatrix =
         TH.it "Transpose of matrices" $ do
             M.transpose firstFullRectangularMatrix `TH.shouldBe` M.unsafeFromList 2 3 [1, -5, -4, 8, 4, 0]
             M.transpose firstDiagonalMatrix `TH.shouldBe` firstDiagonalMatrix
+            M.transpose firstColumnVector `TH.shouldBe` M.unsafeFromList 1 2 [6, 4]
 
         TH.it "Transpose of a matrix twice" $
             TQ.property $ \m -> M.transpose (M.transpose m) == (m :: M.Matrix Double)

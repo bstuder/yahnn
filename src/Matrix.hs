@@ -128,6 +128,8 @@ toColumns = toRows . transpose
 
 transpose :: Matrix a -> Matrix a
 transpose diagonal@DiagonalMatrix{} = diagonal
+transpose (ColumnVector size vector) = RowVector size vector
+transpose (RowVector size vector) = ColumnVector size vector
 transpose (Matrix rows columns vector) = Matrix columns rows transposedVector
   where
     transposedVector = DV.backpermute vector (DV.fromList newIndexes)
