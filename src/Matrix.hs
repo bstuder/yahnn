@@ -33,12 +33,7 @@ data Matrix a = Matrix {
     rows       :: !Int,
     columns    :: !Int,
     vector     :: DV.Vector a
-} deriving (Show)
-
-instance (Eq a) => Eq (Matrix a) where {
-    (Matrix leftRows leftColumns leftVector) == (Matrix rightRows rightColumns rightVector) =
-        leftRows == rightRows && leftColumns == rightColumns && leftVector == rightVector
-}
+} deriving (Eq, Show)
 
 pattern FullMatrix rows columns vector <- Matrix rows columns (validateSize (rows * columns) -> Just vector) where
     FullMatrix rows columns vector = Matrix rows columns vector
