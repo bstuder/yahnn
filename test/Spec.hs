@@ -68,8 +68,8 @@ testMatrix =
             M.addMatrices firstDiagonalMatrix secondFullSquareMatrix `TH.shouldBe` M.fromList 2 2 [3, -1, 5, 2]
             M.addMatrices firstFullSquareMatrix secondDiagonalMatrix `TH.shouldBe` M.fromList 2 2 [3, 3, 6, 3]
             M.addMatrices firstDiagonalMatrix secondDiagonalMatrix `TH.shouldBe` Right (M.unsafeFromList 2 2 [9, 1])
-            M.addMatrices firstRowVector secondRowVector `TH.shouldBe` Right (M.unsafeFromList 1 2 [11, -6])
-            M.addMatrices firstColumnVector secondColumnVector `TH.shouldBe` Right (M.unsafeFromList 2 1 [5, 2])
+            M.addMatrices firstRowVector secondRowVector `TH.shouldBe` M.fromList 1 2 [11, -6]
+            M.addMatrices firstColumnVector secondColumnVector `TH.shouldBe` M.fromList 2 1 [5, 2]
             M.addMatrices firstFullSquareMatrix secondColumnVector `TH.shouldSatisfy` DE.isLeft
             M.addMatrices firstRowVector secondDiagonalMatrix `TH.shouldSatisfy` DE.isLeft
             M.addMatrices firstRowVector secondColumnVector `TH.shouldSatisfy` DE.isLeft
