@@ -68,7 +68,7 @@ testMatrix =
             M.addMatrices firstFullSquareMatrix secondFullSquareMatrix `TH.shouldBe` M.fromList 2 2 [-3, 2, 11, 4]
             M.addMatrices firstDiagonalMatrix secondFullSquareMatrix `TH.shouldBe` M.fromList 2 2 [3, -1, 5, 2]
             M.addMatrices firstFullSquareMatrix secondDiagonalMatrix `TH.shouldBe` M.fromList 2 2 [3, 3, 6, 3]
-            M.addMatrices firstDiagonalMatrix secondDiagonalMatrix `TH.shouldBe` Right (M.unsafeFromList 2 2 [9, 1])
+            M.addMatrices firstDiagonalMatrix secondDiagonalMatrix `TH.shouldBe` M.fromList 2 2 [9, 1]
             M.addMatrices firstRowVector secondRowVector `TH.shouldBe` M.fromList 1 2 [11, -6]
             M.addMatrices firstColumnVector secondColumnVector `TH.shouldBe` M.fromList 2 1 [5, 2]
             M.addMatrices firstFullSquareMatrix secondColumnVector `TH.shouldSatisfy` DE.isLeft
@@ -81,7 +81,7 @@ testMatrix =
             M.multiplyMatrices firstFullSquareMatrix secondFullSquareMatrix `TH.shouldBe` M.fromList 2 2 [17, 11, -1, -3]
             M.multiplyMatrices firstDiagonalMatrix secondFullSquareMatrix `TH.shouldBe` M.fromList 2 2 [-4, -4, -5, -3]
             M.multiplyMatrices firstFullRectangularMatrix secondDiagonalMatrix `TH.shouldBe` M.fromList 3 2 [5, 16, -25, 8, -20, 0]
-            M.multiplyMatrices firstDiagonalMatrix secondDiagonalMatrix `TH.shouldBe` Right (M.unsafeFromList 2 2 [20, -2])
+            M.multiplyMatrices firstDiagonalMatrix secondDiagonalMatrix `TH.shouldBe` M.fromList 2 2 [20, -2]
             M.multiplyMatrices firstRowVector secondColumnVector `TH.shouldBe` M.fromList 1 1 [8]
             M.multiplyMatrices firstColumnVector secondRowVector `TH.shouldBe` M.fromList 2 2 [42, 0, 28, 0]
             M.multiplyMatrices firstRowVector secondFullSquareMatrix `TH.shouldBe` M.fromList 1 2 [-34, -22]
