@@ -5,7 +5,7 @@ import qualified Loss as L
 import qualified Matrix as M
 import qualified Network as N
 import qualified System.Random as SR (mkStdGen)
-import qualified Test.Hspec as TH (describe, hspec, it, shouldBe, shouldSatisfy)
+import qualified Test.Hspec as TH (describe, hspec, it, shouldBe, shouldSatisfy, Spec)
 import qualified Test.QuickCheck as TQ (Arbitrary(..), property, arbitrary, vector, getPositive)
 import qualified Utils as U
 
@@ -38,6 +38,7 @@ instance (RealFloat a, TQ.Arbitrary a) => TQ.Arbitrary (M.Matrix a) where
         list <- TQ.vector (rows * columns)
         return $ M.unsafeFromList rows columns list
 
+testUtils :: TH.Spec
 testUtils =
     TH.describe "Test of utility functions:" $
         TH.it "Chunk of a vector" $ do
@@ -45,6 +46,7 @@ testUtils =
             U.chunksOf 2 vector `TH.shouldBe` DV.fromList (fmap DV.fromList [[-2, 3], [6, 1], [-8, -9]])
             U.chunksOf 5 vector `TH.shouldBe` DV.fromList (fmap DV.fromList [[-2, 3, 6, 1, -8], [-9]])
 
+testMatrix :: TH.Spec
 testMatrix =
     TH.describe "Test of linear algebra functions:" $ do
         TH.it "Equality between matrices with tolerance" $ do
@@ -63,6 +65,9 @@ testMatrix =
 
         TH.it "Transpose of a matrix twice" $
             TQ.property $ \m -> M.transpose (M.transpose m) == (m :: M.Matrix Double)
+
+        TH.it "Multiplication of a matrix and its transposed" $
+            TQ.property $ \m -> DE.isRight (m `M.multiplyMatrices` M.transpose (m :: M.Matrix Double))
 
         TH.it "Addition of two matrices" $ do
             M.addMatrices firstFullSquareMatrix secondFullSquareMatrix `TH.shouldBe` M.fromList 2 2 [-3, 2, 11, 4]
@@ -89,15 +94,14 @@ testMatrix =
             M.multiplyMatrices firstFullSquareMatrix secondRowVector `TH.shouldSatisfy` DE.isLeft
             M.multiplyMatrices firstColumnVector secondDiagonalMatrix `TH.shouldSatisfy` DE.isLeft
 
-        {-TH.it "Multiplication of a matrix and its transposed" $
-            TQ.property $ \m -> DE.isRight (m `M.multiplyMatrices` M.transpose (m :: M.Matrix Double))-}
-
+testActivation :: TH.Spec
 testActivation =
     TH.describe "Test of activation functions:" $
         TH.it "ReLu activation function" $ do
             A.forward A.ReLu firstColumnVector `TH.shouldBe` M.fromList 2 1 [6, 0]
             A.backward A.ReLu firstColumnVector `TH.shouldBe` M.fromList 2 2 [1, 0]
 
+testNetwork :: TH.Spec
 testNetwork =
     TH.describe "Test of network functions:" $ do
         TH.it "Generation of a random network" $ do
