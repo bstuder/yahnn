@@ -1,20 +1,23 @@
-{-# LANGUAGE PatternSynonyms, ViewPatterns #-}
+{-# LANGUAGE DeriveGeneric, PatternSynonyms, ViewPatterns #-}
 
 module Matrix 
 (
     addMatrices,
     applyRow,
+    pattern ColumnVector,
+    pattern DiagonalMatrix,
     empty,
     equal,
     fromLayers,
     fromList,
-    fromRowVector,
-    fromVectors,
+    fromVector,
+    pattern FullMatrix,
     generate,
     Matrix,
+    maximum,
+    minimum,
     multiplyMatrices,
-    multiplyVectorL,
-    multiplyVectorR,
+    pattern RowVector,
     showSize,
     toRows,
     toColumns,
@@ -23,33 +26,62 @@ module Matrix
 ) where
 
 import qualified Data.List as DL (transpose)
-import qualified Data.Vector as DV ((!), and, backpermute, fromList, generate, length, map, Vector(..), zipWith, zip)
+import qualified Data.Vector as DV ((!), and, backpermute, fromList, generate, length, map, maximum, minimum, toList, Vector(..), zipWith)
+import qualified Data.Vector.Serialize as DVS (genericGetVector, genericPutVector)
+import Prelude hiding (minimum, maximum)
 import qualified System.Random as R (StdGen(..), split)
 import qualified Utils as U (chunksOf, dotProduct, generateVector)
+
+import qualified Data.Serialize as DS (decodeLazy, encodeLazy, Serialize)
+import qualified GHC.Generics as GG (Generic(..))
+
+
+{----- TYPES -----}
 
 data Matrix a = Matrix {
     rows       :: !Int,
     columns    :: !Int,
     vector     :: DV.Vector a
-} deriving (Eq, Show)
+} deriving (Eq, GG.Generic, Show)
 
-pattern FullMatrix rows columns vector <- Matrix rows columns (validateSize (rows * columns) -> Just vector) where
-    FullMatrix rows columns vector = Matrix rows columns vector
-pattern DiagonalMatrix size vector <- Matrix size ((== size) -> True) (validateSize size -> Just vector) where
-    DiagonalMatrix size vector = Matrix size size vector
-pattern ColumnVector size vector <- Matrix size 1 (validateSize size -> Just vector) where
+
+{----- PATTERNS -----}
+
+pattern ColumnVector size vector <- Matrix (validateSize -> Just size) 1 (validateVector size -> Just vector) where
     ColumnVector size vector = Matrix size 1 vector
-pattern RowVector size vector <- Matrix 1 size (validateSize size -> Just vector) where
+
+pattern DiagonalMatrix size vector <- Matrix (validateSize -> Just size) ((== size) -> True) (validateVector size -> Just vector) where
+    DiagonalMatrix size vector = Matrix size size vector
+
+pattern FullMatrix rows columns vector <- Matrix rows columns (validateVector (rows * columns) -> Just vector) where
+    FullMatrix rows columns vector = Matrix rows columns vector
+
+pattern RowVector size vector <- Matrix 1 (validateSize -> Just size) (validateVector size -> Just vector) where
     RowVector size vector = Matrix 1 size vector
 
+pattern SingletonMatrix vector <- Matrix 1 1 (validateVector 1 -> Just vector) where
+    SingletonMatrix vector = Matrix 1 1 vector
+
+validateSize :: Int -> Maybe Int
+validateSize size = if size > 1 then Just size else Nothing
+
+validateVector :: Int -> DV.Vector a -> Maybe (DV.Vector a)                                                                
+validateVector size vector = if DV.length vector == size then Just vector else Nothing
+
+{----- INSTANCES -----}
+
+instance (DS.Serialize a) => DS.Serialize (Matrix a)
 instance Functor Matrix where
     fmap function (Matrix rows columns vector) = Matrix rows columns $ DV.map function vector
+
+
+{----- EXPORTED METHODS -----}
 
 addMatrices :: RealFloat a => Matrix a -> Matrix a -> Either String (Matrix a)
 addMatrices full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= addMatrices full
 addMatrices diagonal@DiagonalMatrix{} full@FullMatrix{} = addMatrices full diagonal
-addMatrices (Matrix firstRows firstColumns firstVector) (Matrix secondRows secondColumns secondVector)
-    | (firstRows /= secondRows) || (firstColumns /= secondColumns) = Left "Mismatching dimensions between both matrices"
+addMatrices firstMatrix@(Matrix firstRows firstColumns firstVector) secondMatrix@(Matrix secondRows secondColumns secondVector)
+    | (firstRows /= secondRows) || (firstColumns /= secondColumns) = Left $ "Cannot add matrix " ++ showSize firstMatrix ++ " to matrix " ++ showSize secondMatrix
     | otherwise = Right $ Matrix firstRows firstColumns $ DV.zipWith (+) firstVector secondVector
 
 applyRow :: (DV.Vector a -> b) -> Matrix a -> DV.Vector b
@@ -78,41 +110,31 @@ fromList rows columns list
     | (rows == columns && rows == length list) || (rows * columns == length list) = Right $ unsafeFromList rows columns list
     | otherwise = Left "Mismatch between dimensions and list length"
 
-fromRowVector :: DV.Vector a -> Matrix a
-fromRowVector vector = Matrix 1 (DV.length vector) vector
-
-fromVectors :: RealFloat a =>
-               DV.Vector a      -- ^ Column vector
-               -> DV.Vector a   -- ^ Row vector
-               -> Matrix a      -- ^ Matrix resulting from the multiplication of both vectors.
-fromVectors firstVector secondVector = Matrix (length firstVector) (length secondVector) (firstVector >>= \x -> fmap (*x) secondVector)
+fromVector :: RealFloat a => Int -> Int -> DV.Vector a -> Either String (Matrix a)
+fromVector rows columns vector = fromList rows columns $ DV.toList vector
 
 generate :: Int -> Int -> ((Int, Int) -> a) -> Matrix a
 generate rows columns function =
     Matrix rows columns $ DV.generate (rows * columns) (\indice -> function (indice `div` columns, indice `mod` columns))
 
+maximum :: RealFloat a => Matrix a -> a
+maximum (Matrix _ _ vector) = DV.maximum vector
+
+minimum :: RealFloat a => Matrix a -> a
+minimum (Matrix _ _ vector) = DV.minimum vector
+
 multiplyMatrices :: RealFloat a => Matrix a -> Matrix a -> Either String (Matrix a)
 multiplyMatrices full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= multiplyMatrices full
 multiplyMatrices diagonal@DiagonalMatrix{} full@FullMatrix{} = toFull diagonal >>= flip multiplyMatrices full
-multiplyMatrices (DiagonalMatrix firstSize firstVector) (DiagonalMatrix secondSize secondVector)
-    | firstSize /= secondSize = Left "Mismatching dimensions between both matrices"
+multiplyMatrices firstMatrix@(DiagonalMatrix firstSize firstVector) secondMatrix@(DiagonalMatrix secondSize secondVector)
+    | firstSize /= secondSize = Left $ "Cannot multiply matrix " ++ showSize firstMatrix ++ " with matrix " ++ showSize secondMatrix
     | otherwise = Right $ DiagonalMatrix firstSize $ DV.zipWith (*) firstVector secondVector
 multiplyMatrices firstMatrix@(Matrix firstRows firstColumns _) secondMatrix@(Matrix secondRows secondColumns _)
-    | firstColumns /= secondRows = Left "Mismatching dimensions between both matrices"
+    | firstColumns /= secondRows = Left $ "Cannot multiply matrix " ++ showSize firstMatrix ++ " with matrix " ++ showSize secondMatrix
     | otherwise = Right $ Matrix firstRows secondColumns $ toRows firstMatrix >>= \row -> U.dotProduct row <$> toColumns secondMatrix
 
-multiplyVectorL :: (RealFloat a) => DV.Vector a -> Matrix a -> Either String (DV.Vector a)
-multiplyVectorL vector matrix
-    | rows matrix /= DV.length vector = Left $ "Mismatching dimensions between vector " <> show (DV.length vector) <> " and matrix " <> showSize matrix
-    | otherwise = transpose matrix `multiplyVectorR` vector
-
-multiplyVectorR :: (RealFloat a) => Matrix a -> DV.Vector a -> Either String (DV.Vector a)
-multiplyVectorR matrix vector
-    | columns matrix /= DV.length vector = Left $ "Mismatching dimensions between matrix " <> showSize matrix <> " and vector " <> show (DV.length vector)
-    | otherwise = Right $ U.dotProduct vector <$> toRows matrix
-
 showSize :: Matrix a -> String
-showSize (Matrix rows columns _) = "(" <> show rows <> "," <> show columns <> ")"
+showSize (Matrix rows columns _) = "[" <> show rows <> " x " <> show columns <> "]"
 
 toFull :: RealFloat a => Matrix a -> Either String (Matrix a)
 toFull (DiagonalMatrix size vector) = Right $ generate size size (\(row, column) -> if row == column then vector DV.! row else 0)
@@ -137,6 +159,3 @@ transpose (Matrix rows columns vector) = Matrix columns rows transposedVector
 
 unsafeFromList :: RealFloat a => Int -> Int -> [a] -> Matrix a
 unsafeFromList rows columns list = Matrix rows columns $ DV.fromList list
-
-validateSize :: Int ->  DV.Vector a ->  Maybe (DV.Vector a)                                                                
-validateSize size vector = if DV.length vector == size then Just vector else Nothing

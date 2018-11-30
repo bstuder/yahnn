@@ -1,11 +1,20 @@
+{-# LANGUAGE PatternSynonyms #-}
+
 module Loss where
 
-import qualified Data.Vector as DV (length, Vector(..), zipWith)
+import qualified Data.Vector as DV (zipWith)
+import qualified Matrix as M (pattern ColumnVector, empty, fromVector, Matrix)
 
 data Loss = MSE deriving (Eq, Show)
 
-forward :: (RealFloat a) => Loss -> DV.Vector a -> DV.Vector a -> a
-forward MSE output target = (/ fromIntegral (DV.length output)) . sum . fmap (**2) $ DV.zipWith (-) output target
+forward :: RealFloat a => Loss -> M.Matrix a -> M.Matrix a -> Either String a
+forward MSE (M.ColumnVector outputSize outputVector) (M.ColumnVector targetSize targetVector)
+    | outputSize /= targetSize = Left "Mismatching dimensions between output and target"
+    | otherwise = Right $ (/ fromIntegral outputSize) . sum . fmap (**2) $ DV.zipWith (-) outputVector targetVector
+forward MSE _ _ = Left "Wrong matrix types to compute loss forward"
 
-derivate :: (RealFloat a) => Loss -> DV.Vector a -> DV.Vector a -> DV.Vector a
-derivate MSE output target = (/ fromIntegral (DV.length output)) . (*2) <$> DV.zipWith (-) output target
+backward :: RealFloat a => Loss -> M.Matrix a -> M.Matrix a -> Either String (M.Matrix a)
+backward MSE (M.ColumnVector outputSize outputVector) (M.ColumnVector targetSize targetVector)
+    | outputSize /= targetSize = Left "Mismatching dimensions between output and target"
+    | otherwise = M.fromVector 1 outputSize $ (/ fromIntegral outputSize) . (*2) <$> DV.zipWith (-) outputVector targetVector
+derivate MSE _ _ = Left "Wrong matrix types to compute loss backward"

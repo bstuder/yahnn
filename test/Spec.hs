@@ -13,7 +13,7 @@ vector = DV.fromList [-2, 3, 6, 1, -8, -9]
 
 firstRowVector = M.unsafeFromList 1 2 [4, -6]
 secondRowVector = M.unsafeFromList 1 2 [7, 0]
-firstColumnVector = M.unsafeFromList 2 1 [6, 4]
+firstColumnVector = M.unsafeFromList 2 1 [6, -4]
 secondColumnVector = M.unsafeFromList 2 1 [-1, -2]
 firstFullSquareMatrix = M.unsafeFromList 2 2 [-2, 3, 6, 1]
 secondFullSquareMatrix = M.unsafeFromList 2 2 [-1, -1, 5, 3]
@@ -59,7 +59,7 @@ testMatrix =
         TH.it "Transpose of matrices" $ do
             M.transpose firstFullRectangularMatrix `TH.shouldBe` M.unsafeFromList 2 3 [1, -5, -4, 8, 4, 0]
             M.transpose firstDiagonalMatrix `TH.shouldBe` firstDiagonalMatrix
-            M.transpose firstColumnVector `TH.shouldBe` M.unsafeFromList 1 2 [6, 4]
+            M.transpose firstColumnVector `TH.shouldBe` M.unsafeFromList 1 2 [6, -4]
 
         TH.it "Transpose of a matrix twice" $
             TQ.property $ \m -> M.transpose (M.transpose m) == (m :: M.Matrix Double)
@@ -70,7 +70,7 @@ testMatrix =
             M.addMatrices firstFullSquareMatrix secondDiagonalMatrix `TH.shouldBe` M.fromList 2 2 [3, 3, 6, 3]
             M.addMatrices firstDiagonalMatrix secondDiagonalMatrix `TH.shouldBe` M.fromList 2 2 [9, 1]
             M.addMatrices firstRowVector secondRowVector `TH.shouldBe` M.fromList 1 2 [11, -6]
-            M.addMatrices firstColumnVector secondColumnVector `TH.shouldBe` M.fromList 2 1 [5, 2]
+            M.addMatrices firstColumnVector secondColumnVector `TH.shouldBe` M.fromList 2 1 [5, -6]
             M.addMatrices firstFullSquareMatrix secondColumnVector `TH.shouldSatisfy` DE.isLeft
             M.addMatrices firstRowVector secondDiagonalMatrix `TH.shouldSatisfy` DE.isLeft
             M.addMatrices firstRowVector secondColumnVector `TH.shouldSatisfy` DE.isLeft
@@ -83,20 +83,11 @@ testMatrix =
             M.multiplyMatrices firstFullRectangularMatrix secondDiagonalMatrix `TH.shouldBe` M.fromList 3 2 [5, 16, -25, 8, -20, 0]
             M.multiplyMatrices firstDiagonalMatrix secondDiagonalMatrix `TH.shouldBe` M.fromList 2 2 [20, -2]
             M.multiplyMatrices firstRowVector secondColumnVector `TH.shouldBe` M.fromList 1 1 [8]
-            M.multiplyMatrices firstColumnVector secondRowVector `TH.shouldBe` M.fromList 2 2 [42, 0, 28, 0]
+            M.multiplyMatrices firstColumnVector secondRowVector `TH.shouldBe` M.fromList 2 2 [42, 0, -28, 0]
             M.multiplyMatrices firstRowVector secondFullSquareMatrix `TH.shouldBe` M.fromList 1 2 [-34, -22]
             M.multiplyMatrices firstFullSquareMatrix secondColumnVector `TH.shouldBe` M.fromList 2 1 [-4, -8]
             M.multiplyMatrices firstFullSquareMatrix secondRowVector `TH.shouldSatisfy` DE.isLeft
             M.multiplyMatrices firstColumnVector secondDiagonalMatrix `TH.shouldSatisfy` DE.isLeft
-
-        TH.it "Multiplication of two vectors" $
-            M.fromVectors (DV.fromList [6, 4]) (DV.fromList [7, 0]) `TH.shouldBe` M.unsafeFromList 2 2 [42, 0, 28, 0]
-
-        TH.it "Multiplication of vectors and matrices" $ do
-            M.multiplyVectorL (DV.fromList [4, -6]) secondFullSquareMatrix `TH.shouldBe` Right (DV.fromList [-34, -22])
-            M.multiplyVectorL (DV.fromList [4, -6, 0]) secondDiagonalMatrix `TH.shouldSatisfy` DE.isLeft
-            M.multiplyVectorR firstFullSquareMatrix (DV.fromList [7, 0]) `TH.shouldBe` Right (DV.fromList [-14, 42])
-            M.multiplyVectorR firstFullSquareMatrix (DV.fromList [7, 0, 0]) `TH.shouldSatisfy` DE.isLeft
 
         {-TH.it "Multiplication of a matrix and its transposed" $
             TQ.property $ \m -> DE.isRight (m `M.multiplyMatrices` M.transpose (m :: M.Matrix Double))-}
@@ -104,8 +95,8 @@ testMatrix =
 testActivation =
     TH.describe "Test of activation functions:" $
         TH.it "ReLu activation function" $ do
-            A.forward A.ReLu vector `TH.shouldBe` DV.fromList [0, 3, 6, 1, 0, 0]
-            A.derivate A.ReLu vector `TH.shouldBe` DV.fromList [0, 1, 1, 1, 0, 0]
+            A.forward A.ReLu firstColumnVector `TH.shouldBe` M.fromList 2 1 [6, 0]
+            A.backward A.ReLu firstColumnVector `TH.shouldBe` M.fromList 2 2 [1, 0]
 
 testNetwork =
     TH.describe "Test of network functions:" $ do
@@ -116,13 +107,15 @@ testNetwork =
                 ]
             N.random [3, 2] [A.ReLu, A.TanH] generator `TH.shouldSatisfy` DE.isLeft
 
-        let forwardResult = N.forward vector network
+        let datapoint = M.unsafeFromList 6 1 [-2, 3, 6, 1, -8, -9]
+        let forwardResult = N.forward datapoint network
 
-        TH.it "Forward of an input" $
+        TH.it "Forward of an input" $ do
+            let toColumnVector = \vector -> M.unsafeFromList (length vector) 1 vector
             forwardResult `TH.shouldBe` Right (N.ForwardResult
-                (DV.fromList <$> [[49, -29, 5], [157, 103], [260, 196, 677], [122, -3538, 491, 4400, 3339, 1090]])
-                (DV.fromList <$> [[-2, 3, 6, 1, -8, -9], [49, 0, 5], [157, 103], [260, 196, 677], [122, 0, 491, 4400, 3339, 1090]])
-           )
+                (toColumnVector <$> [[49, -29, 5], [157, 103], [260, 196, 677], [122, -3538, 491, 4400, 3339, 1090]])
+                (toColumnVector <$> [[-2, 3, 6, 1, -8, -9], [49, 0, 5], [157, 103], [260, 196, 677], [122, 0, 491, 4400, 3339, 1090]])
+                )
         TH.it "Propagation of a gradient" $ do
             let backwardExpected = [
                     M.unsafeFromList 3 6 [-414356.03125, 621534.0625, 1243068.125, 207178.015625, -1657424.125, -1864602.125, 0, 0, 0, 0, 0, 0, -203632.015625, 305448.03125, 610896.0625, 101816.0078125, -814528.0625, -916344.0625],
@@ -130,7 +123,7 @@ testNetwork =
                     M.unsafeFromList 3 2 [1197805.375, 785821.375, 1600353.625, 1049913.5, 1548962.125, 1016198.125],
                     M.unsafeFromList 6 3 [10746.6669921875, 8101.333984375, 27982.66796875, 0, 0, 0, 42033.3359375, 31686.66796875, 109448.3359375, 381246.6875, 287401.34375, 992707.6875, 290073.34375, 218670.6875, 755306.375, 95246.671875, 71801.3359375, 248007.671875]
                     ]
-            (forwardResult >>= \justForwardResult -> N.backward network justForwardResult vector L.MSE) `TH.shouldSatisfy`
+            (forwardResult >>= \justForwardResult -> N.backward network justForwardResult datapoint L.MSE) `TH.shouldSatisfy`
                 \backwardResult -> any (and . zipWith (M.equal 1) backwardExpected) backwardResult
 
 main :: IO ()

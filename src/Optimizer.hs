@@ -5,7 +5,7 @@ import qualified Matrix as M (addMatrices, Matrix(..))
 
 data Optimizer a = SGD { momentum :: a, learningRate :: a } deriving (Eq, Show)
 
-optimize :: (RealFloat a) => [M.Matrix a] -> [M.Matrix a] -> Optimizer a -> Either String [M.Matrix a]
+optimize :: RealFloat a => [M.Matrix a] -> [M.Matrix a] -> Optimizer a -> Either String [M.Matrix a]
 optimize weights gradients (SGD momentum learningRate) =
     CM.zipWithM applyGradient weights gradients
     where
