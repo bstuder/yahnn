@@ -28,24 +28,24 @@ parseLabels = do
     rawData <- DBG.getLazyByteString $ fromIntegral numberOfItems
     return $! sequence $ M.fromList 1 1 <$> chunksOf 1 (DBL.unpack rawData)
 
-main :: IO ()
-main = do
-    print "Start trainset conversion."
-    input_data <- DBL.readFile "data/MNIST/training_data"
-    input_labels <- DBL.readFile "data/MNIST/training_labels"
+convertMnist :: String -> String -> String -> String -> IO ()
+convertMnist baseDir dataPath labelPath outPath = do
+    input_data <- DBL.readFile (baseDir <> dataPath)
+    input_labels <- DBL.readFile (baseDir <> labelPath)
     let dataset = do
         datapoints <- DBG.runGet parseDatapoints input_data
         labels <- DBG.runGet parseLabels input_labels
         D.fromLists datapoints labels
-    either SE.die (DBL.writeFile "data/MNIST/training_set" . D.toByteString) dataset
+    either SE.die (DBL.writeFile (baseDir <> outPath) . D.toByteString) dataset
+
+main :: IO ()
+main = do
+    let baseDir = "data/MNIST/"
+
+    print "Start trainset conversion."
+    convertMnist baseDir "training_data" "training_labels" "training_set"
     print "Trainset conversion finished."
 
     print "Start testset conversion."
-    input_data <- DBL.readFile "data/MNIST/test_data"
-    input_labels <- DBL.readFile "data/MNIST/test_labels"
-    let dataset = do
-        datapoints <- DBG.runGet parseDatapoints input_data
-        labels <- DBG.runGet parseLabels input_labels
-        D.fromLists datapoints labels
-    either SE.die (DBL.writeFile "data/MNIST/test_set" . D.toByteString) dataset
+    convertMnist baseDir "test_data" "test_labels" "test_set"
     print "Testset conversion finished."
