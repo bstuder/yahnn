@@ -1,9 +1,10 @@
 module Main where
 
-import qualified Data.Binary.Get as DBG (Get(..), getInt32be, getLazyByteString, runGet)
-import qualified Data.ByteString.Lazy as DBL (readFile, unpack, writeFile)
-import qualified Dataset as D (Dataset(..), fromLists, toByteString)
-import qualified GHC.Word as GW (Word8(..))
+import qualified Data.Binary.Get as DBG (Get, getInt32be, getLazyByteString, runGet)
+import qualified Data.ByteString.Lazy as DBL (ByteString, readFile, unpack, writeFile)
+import qualified Data.Int as DI (Int32)
+import qualified Dataset as D (Dataset, fromLists, toByteString)
+import qualified GHC.Word as GW (Word8)
 import qualified Matrix as M (fromList, Matrix)
 import qualified System.Exit as SE (die)
 
@@ -17,39 +18,45 @@ toOneHot :: (Num a, Ord a) => a -> a -> [Double]
 toOneHot 0 value = []
 toOneHot size value = (if value == size then 1.0 else 0.0) : toOneHot (size - 1) value
 
-parseDatapoints :: DBG.Get (Either String [M.Matrix Double])
-parseDatapoints = do
+parseDatapoints :: Maybe DI.Int32 -> DBG.Get (Either String [M.Matrix Double])
+parseDatapoints threshold = do
     magicNumber <- DBG.getInt32be
-    numberOfItems <- DBG.getInt32be
+    size <- DBG.getInt32be
+    let numberOfItems = case threshold of
+            Just threshold -> min threshold size
+            Nothing -> size
     size <- (*) <$> DBG.getInt32be <*> DBG.getInt32be
     rawData <- DBG.getLazyByteString $ fromIntegral (size * numberOfItems)
     return $! sequence $ M.fromList (fromIntegral size) 1 <$> chunksOf (fromIntegral size) (fromIntegral <$> DBL.unpack rawData)
 
-parseLabels :: DBG.Get (Either String [M.Matrix Double])
-parseLabels = do
+parseLabels :: Maybe DI.Int32 -> DBG.Get (Either String [M.Matrix Double])
+parseLabels threshold = do
     magicNumber <- DBG.getInt32be
-    numberOfItems <- DBG.getInt32be
+    size <- DBG.getInt32be
+    let numberOfItems = case threshold of
+            Just threshold -> min threshold size
+            Nothing -> size
     rawData <- DBG.getLazyByteString $ fromIntegral numberOfItems
     return $! sequence $ M.fromList 10 1 <$> toOneHot 10 <$> DBL.unpack rawData
 
-convertMnist :: String -> String -> String -> String -> IO ()
-convertMnist baseDir dataPath labelPath outPath = do
-    input_data <- DBL.readFile (baseDir <> dataPath)
-    input_labels <- DBL.readFile (baseDir <> labelPath)
+convertMNIST :: Maybe DI.Int32 -> String -> String -> String -> String -> IO ()
+convertMNIST threshold baseFolder dataFileName labelFileName outputFileName = do
+    input_data <- DBL.readFile (baseFolder <> dataFileName)
+    input_labels <- DBL.readFile (baseFolder <> labelFileName)
     let dataset = do
-        datapoints <- DBG.runGet parseDatapoints input_data
-        labels <- DBG.runGet parseLabels input_labels
-        D.fromLists datapoints labels
-    either SE.die (DBL.writeFile (baseDir <> outPath) . D.toByteString . fmap fromIntegral) dataset
+            datapoints <- DBG.runGet (parseDatapoints threshold) input_data
+            labels <- DBG.runGet (parseLabels threshold) input_labels
+            D.fromLists datapoints labels
+    either SE.die (DBL.writeFile (baseFolder <> outputFileName) . D.toByteString) dataset
 
 main :: IO ()
 main = do
-    let baseDir = "data/MNIST/"
+    let baseFolder = "data/MNIST/"
 
     print "Start trainset conversion."
-    convertMnist baseDir "training_data" "training_labels" "training_set"
+    convertMNIST (Just 50) baseFolder "training_data" "training_labels" "training_set"
     print "Trainset conversion finished."
 
     print "Start testset conversion."
-    convertMnist baseDir "test_data" "test_labels" "test_set"
+    convertMNIST Nothing baseFolder "test_data" "test_labels" "test_set"
     print "Testset conversion finished."
