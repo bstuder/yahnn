@@ -21,21 +21,17 @@ toOneHot size value = (if value == size then 1.0 else 0.0) : toOneHot (size - 1)
 parseDatapoints :: Maybe DI.Int32 -> DBG.Get (Either String [M.Matrix Double])
 parseDatapoints threshold = do
     magicNumber <- DBG.getInt32be
-    size <- DBG.getInt32be
-    let numberOfItems = case threshold of
-            Just threshold -> min threshold size
-            Nothing -> size
-    size <- (*) <$> DBG.getInt32be <*> DBG.getInt32be
-    rawData <- DBG.getLazyByteString $ fromIntegral (size * numberOfItems)
-    return $! sequence $ M.fromList (fromIntegral size) 1 <$> chunksOf (fromIntegral size) (fromIntegral <$> DBL.unpack rawData)
+    items <- DBG.getInt32be
+    let numberOfItems = maybe (fromIntegral items) (min (fromIntegral items)) threshold
+    itemSize <- (*) <$> DBG.getInt32be <*> DBG.getInt32be
+    rawData <- DBG.getLazyByteString $ fromIntegral (itemSize * numberOfItems)
+    return $! sequence $ M.fromList (fromIntegral itemSize) 1 <$> chunksOf (fromIntegral itemSize) (fromIntegral <$> DBL.unpack rawData)
 
 parseLabels :: Maybe DI.Int32 -> DBG.Get (Either String [M.Matrix Double])
 parseLabels threshold = do
     magicNumber <- DBG.getInt32be
-    size <- DBG.getInt32be
-    let numberOfItems = case threshold of
-            Just threshold -> min threshold size
-            Nothing -> size
+    items <- DBG.getInt32be
+    let numberOfItems = maybe (fromIntegral items) (min (fromIntegral items)) threshold
     rawData <- DBG.getLazyByteString $ fromIntegral numberOfItems
     return $! sequence $ M.fromList 10 1 <$> toOneHot 10 <$> DBL.unpack rawData
 

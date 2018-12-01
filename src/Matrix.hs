@@ -124,18 +124,14 @@ maximum (Matrix _ _ vector) = DV.maximum vector
 minimum :: RealFloat a => Matrix a -> a
 minimum (Matrix _ _ vector) = DV.minimum vector
 
-normalize :: RealFloat a => (Maybe a) -> (Maybe a) -> Matrix a -> Matrix a
+normalize :: RealFloat a => Maybe a -> Maybe a -> Matrix a -> Matrix a
 normalize maybeUpperBound maybeLowerBound matrix =
     if upperBound == lowerBound
         then const 0 <$> matrix
         else (\x -> (2 * x - upperBound - lowerBound) / (upperBound - lowerBound)) <$> matrix
   where
-    upperBound = case maybeUpperBound of
-        Just maybeUpperBound -> maybeUpperBound
-        Nothing -> maximum matrix
-    lowerBound = case maybeLowerBound of
-        Just maybeLowerBound -> maybeLowerBound
-        Nothing -> minimum matrix
+    upperBound = maybe (maximum matrix) id maybeUpperBound
+    lowerBound = maybe (minimum matrix) id maybeLowerBound
 
 multiplyMatrices :: RealFloat a => Matrix a -> Matrix a -> Either String (Matrix a)
 multiplyMatrices full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= multiplyMatrices full
