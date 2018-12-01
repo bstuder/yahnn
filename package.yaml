@@ -36,8 +36,12 @@ executables:
     main: Main.hs
     source-dirs: app
     ghc-options:
-    - -threaded
+    - -fdiagnostics-color=always
+    - -fprint-expanded-synonyms
+    - -fprint-typechecker-elaboration
+    - -fprint-potential-instances
     - -rtsopts
+    - -threaded
     - -with-rtsopts=-N
     dependencies:
     - bytestring
@@ -50,8 +54,12 @@ tests:
     main: Spec.hs
     source-dirs: test
     ghc-options:
-    - -threaded
+    - -fdiagnostics-color=always
+    - -fprint-expanded-synonyms
+    - -fprint-typechecker-elaboration
+    - -fprint-potential-instances
     - -rtsopts
+    - -threaded
     - -with-rtsopts=-N
     dependencies:
     - hspec
