@@ -28,7 +28,7 @@ library:
     - bytestring
     - cereal
     - cereal-vector
-    - random 
+    - random
     - vector
 
 executables:

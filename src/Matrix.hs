@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric, PatternSynonyms, ViewPatterns #-}
 
-module Matrix 
+module Matrix
 (
     addMatrices,
     applyRow,
@@ -66,7 +66,7 @@ pattern SingletonMatrix vector <- Matrix 1 1 (validateVector 1 -> Just vector) w
 validateSize :: Int -> Maybe Int
 validateSize size = if size > 1 then Just size else Nothing
 
-validateVector :: Int -> DV.Vector a -> Maybe (DV.Vector a)                                                                
+validateVector :: Int -> DV.Vector a -> Maybe (DV.Vector a)
 validateVector size vector = if DV.length vector == size then Just vector else Nothing
 
 {----- INSTANCES -----}

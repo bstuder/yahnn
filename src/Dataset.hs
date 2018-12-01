@@ -42,7 +42,7 @@ normalizeFlag inputFlag referenceFlag matrices =
         else matrices
   where
     upperBound = maximum $ M.maximum <$> matrices
-    lowerBound = minimum $ M.minimum <$> matrices    
+    lowerBound = minimum $ M.minimum <$> matrices
 
 
 {----- EXPORTED METHODS -----}
