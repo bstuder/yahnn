@@ -13,20 +13,24 @@ chunksOf length list
     | null list = []
     | otherwise = take length list : chunksOf length (drop length list)
 
-parseDatapoints :: DBG.Get (Either String [M.Matrix GW.Word8])
+toOneHot :: (Num a, Ord a) => a -> a -> [Double]
+toOneHot 0 value = []
+toOneHot size value = (if value == size then 1.0 else 0.0) : toOneHot (size - 1) value
+
+parseDatapoints :: DBG.Get (Either String [M.Matrix Double])
 parseDatapoints = do
     magicNumber <- DBG.getInt32be
     numberOfItems <- DBG.getInt32be
     size <- (*) <$> DBG.getInt32be <*> DBG.getInt32be
     rawData <- DBG.getLazyByteString $ fromIntegral (size * numberOfItems)
-    return $! sequence $ M.fromList (fromIntegral size) 1 <$> chunksOf (fromIntegral size) (DBL.unpack rawData)
+    return $! sequence $ M.fromList (fromIntegral size) 1 <$> chunksOf (fromIntegral size) (fromIntegral <$> DBL.unpack rawData)
 
-parseLabels :: DBG.Get (Either String [M.Matrix GW.Word8])
+parseLabels :: DBG.Get (Either String [M.Matrix Double])
 parseLabels = do
     magicNumber <- DBG.getInt32be
     numberOfItems <- DBG.getInt32be
     rawData <- DBG.getLazyByteString $ fromIntegral numberOfItems
-    return $! sequence $ M.fromList 1 1 <$> chunksOf 1 (DBL.unpack rawData)
+    return $! sequence $ M.fromList 10 1 <$> toOneHot 10 <$> DBL.unpack rawData
 
 main :: IO ()
 main = do

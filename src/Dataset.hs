@@ -58,5 +58,5 @@ fromLists datapoints targets
 normalize :: RealFloat a => Flag -> Dataset a -> Dataset a
 normalize flag (Dataset datapoints targets) = Dataset (normalizeFlag flag Datapoints datapoints) (normalizeFlag flag Targets targets)
 
-toByteString :: (DS.Serialize a) => Dataset a -> DBL.ByteString
+toByteString :: Dataset Double -> DBL.ByteString
 toByteString = DS.encodeLazy
