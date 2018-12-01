@@ -70,7 +70,7 @@ backward :: RealFloat a =>
 backward (Network activations weights) (ForwardResult layerInputs layerOutputs) target loss = do
     let propagation = (,) M.empty <$> L.backward loss (last layerOutputs) target
     backwardResults <- sequence $ init $ scanr computeBackwardStep propagation (DL.zip4 layerInputs activations weights (init layerOutputs))
-    return $ fmap (fst) backwardResults
+    return $ fst <$> backwardResults
   where
     computeBackwardStep (input, activation, weight, output) previous = previous >>= \(_, x) -> backwardStep input activation weight output x
 
@@ -110,4 +110,4 @@ train optimizer loss (D.Dataset (datapoint:datapoints) (target:targets)) network
     return (lastNetwork, lossValue:losses)
 
 unsafeFromLists :: [A.Activation] -> [M.Matrix a] -> Network a
-unsafeFromLists activations weights = Network activations weights
+unsafeFromLists = Network

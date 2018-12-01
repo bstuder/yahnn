@@ -32,27 +32,6 @@ library:
     - vector
 
 executables:
-  convert-exe:
-    main: Convert.hs
-    source-dirs: tools/MNIST
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - bytestring
-    - binary
-    - vector
-    - yahnn
-  test-exe:
-    main: Test.hs
-    source-dirs: tools/test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - vector
   yahnn-exe:
     main: Main.hs
     source-dirs: app

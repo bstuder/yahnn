@@ -105,7 +105,7 @@ fromLayers (x:y:xs) generator = Matrix y x randomVector : fromLayers (y:xs) seco
     (firstGenerator, secondGenerator) = R.split generator
     randomVector = U.generateVector (x * y) firstGenerator
 
-fromList :: RealFloat a => Int -> Int -> [a] -> Either String (Matrix a)
+fromList :: Int -> Int -> [a] -> Either String (Matrix a)
 fromList rows columns list
     | (rows == columns && rows == length list) || (rows * columns == length list) = Right $ unsafeFromList rows columns list
     | otherwise = Left "Mismatch between dimensions and list length"
@@ -157,5 +157,5 @@ transpose (Matrix rows columns vector) = Matrix columns rows transposedVector
     transposedVector = DV.backpermute vector (DV.fromList newIndexes)
     newIndexes = concat . DL.transpose . take rows . iterate (fmap (+columns)) $ [0 .. columns - 1]
 
-unsafeFromList :: RealFloat a => Int -> Int -> [a] -> Matrix a
+unsafeFromList :: Int -> Int -> [a] -> Matrix a
 unsafeFromList rows columns list = Matrix rows columns $ DV.fromList list
