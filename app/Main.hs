@@ -19,5 +19,5 @@ main = do
             network <- N.random [784, 300, 10] [A.Sigmoid, A.Sigmoid, A.Sigmoid] generator
             N.train (O.SGD 1 0.01) L.MSE dataset network
 
-    either print (print . fst) result
+    print $ fst <$> result
     print "Training achieved."

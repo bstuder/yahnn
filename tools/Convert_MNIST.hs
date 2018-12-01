@@ -36,7 +36,7 @@ convertMnist baseDir dataPath labelPath outPath = do
         datapoints <- DBG.runGet parseDatapoints input_data
         labels <- DBG.runGet parseLabels input_labels
         D.fromLists datapoints labels
-    either SE.die (DBL.writeFile (baseDir <> outPath) . D.toByteString) dataset
+    either SE.die (DBL.writeFile (baseDir <> outPath) . D.toByteString . fmap fromIntegral) dataset
 
 main :: IO ()
 main = do
