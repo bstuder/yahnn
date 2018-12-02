@@ -66,8 +66,8 @@ trainStep :: RealFloat a =>
              -> Either String (Network a, [a])  -- ^ Previous trained network and losses
              -> (M.Matrix a, M.Matrix a)        -- ^ Datapoint and target to train on
              -> Either String (Network a, [a])  -- ^ Trained network and list of loss values
-trainStep optimizer loss previousResult (datapoint, target) = do
-    (network, losses) <- previousResult
+trainStep optimizer loss accumulator (datapoint, target) = do
+    (network, losses) <- accumulator
     forwardResult <- forward datapoint network
     gradients <- backward network forwardResult target loss
     newNetwork <- Network (activations network) <$> O.optimize (weights network) gradients optimizer

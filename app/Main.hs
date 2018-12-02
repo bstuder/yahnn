@@ -32,5 +32,5 @@ main = do
         GRCE.plot (GRCE.line "Loss" [zip [1.. length losses] losses])
 
     endTime <- DT.getCurrentTime
-    putStrLn $ "Training achieved in " ++ (show $ DT.diffUTCTime endTime startTime)
+    putStrLn $ "Training achieved in " ++ show (DT.diffUTCTime endTime startTime)
     putStrLn $ "Loss evolution chart has been saved under \"" ++ lossFileName ++"\""

@@ -33,7 +33,7 @@ parseLabels threshold = do
     items <- DBG.getInt32be
     let numberOfItems = maybe (fromIntegral items) (min (fromIntegral items)) threshold
     rawData <- DBG.getLazyByteString $ fromIntegral numberOfItems
-    return $! sequence $ M.fromList 10 1 <$> toOneHot 10 <$> DBL.unpack rawData
+    return $! sequence $ M.fromList 10 1 . toOneHot 10 <$> DBL.unpack rawData
 
 convertMNIST :: Maybe DI.Int32 -> String -> String -> String -> String -> IO ()
 convertMNIST threshold baseFolder dataFileName labelFileName outputFileName = do
@@ -50,9 +50,9 @@ main = do
     let baseFolder = "data/MNIST/"
 
     print "Start trainset conversion."
-    convertMNIST (Just 100) baseFolder "training_data" "training_labels" "training_set"
+    convertMNIST (Just 1000) baseFolder "training_data" "training_labels" "training_set"
     print "Trainset conversion finished."
 
     print "Start testset conversion."
-    convertMNIST (Just 10) baseFolder "test_data" "test_labels" "test_set"
+    convertMNIST Nothing baseFolder "test_data" "test_labels" "test_set"
     print "Testset conversion finished."
