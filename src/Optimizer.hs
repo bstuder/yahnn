@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Optimizer where
 
 import qualified Control.Monad as CM (zipWithM)

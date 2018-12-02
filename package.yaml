@@ -35,6 +35,8 @@ executables:
   yahnn-exe:
     main: Main.hs
     source-dirs: app
+    default-extensions:
+    - StrictData
     ghc-options:
     - -fdiagnostics-color=always
     - -fprint-expanded-synonyms
@@ -45,6 +47,8 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - bytestring
+    - cereal
+    - cereal-vector
     - random
     - vector
     - yahnn
@@ -53,6 +57,8 @@ tests:
   yahnn-test:
     main: Spec.hs
     source-dirs: test
+    default-extensions:
+    - StrictData
     ghc-options:
     - -fdiagnostics-color=always
     - -fprint-expanded-synonyms

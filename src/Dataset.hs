@@ -20,7 +20,7 @@ import qualified Matrix as M (fromVector, maximum, minimum, normalize, Matrix)
 
 data Dataset a = Dataset {
     datapoints :: [M.Matrix a],
-    targets :: [M.Matrix a]
+    targets    :: [M.Matrix a]
 } deriving (Eq, GG.Generic, Show)
 
 data Flag = Both | Datapoints | Targets deriving (Eq, Show)

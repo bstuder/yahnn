@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, PatternSynonyms, ViewPatterns #-}
+{-# LANGUAGE Strict, DeriveGeneric, PatternSynonyms, ViewPatterns #-}
 
 module Matrix
 (
@@ -40,9 +40,9 @@ import qualified GHC.Generics as GG (Generic(..))
 {----- TYPES -----}
 
 data Matrix a = Matrix {
-    rows       :: !Int,
-    columns    :: !Int,
-    vector     :: DV.Vector a
+    rows    :: Int,
+    columns :: Int,
+    vector  :: DV.Vector a
 } deriving (Eq, GG.Generic, Show)
 
 

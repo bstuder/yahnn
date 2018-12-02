@@ -1,4 +1,4 @@
-{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE Strict, PatternSynonyms #-}
 
 module Loss where
 

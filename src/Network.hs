@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Network
 (
     backward,
@@ -113,7 +115,7 @@ train :: RealFloat a =>
          -> Network a                       -- ^ Current Network
          -> D.Dataset a                     -- ^ Dataset to train on
          -> Either String (Network a, [a])  -- ^ Trained network and list of loss values
-train optimizer loss network (D.Dataset datapoints targets) = do
+train optimizer loss network (D.Dataset datapoints targets) =
     DL.foldl' (trainStep optimizer loss) (Right (network, [])) $ zip datapoints targets
 
 unsafeFromLists :: [A.Activation] -> [M.Matrix a] -> Network a
