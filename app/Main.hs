@@ -5,7 +5,7 @@ import qualified Data.ByteString.Lazy as DBL (readFile)
 import qualified Data.Either as DE (fromRight)
 import qualified Data.Time as DT (diffUTCTime, getCurrentTime)
 import qualified Dataset as D (Dataset(..), fromByteString, normalize, Flag(..))
-import qualified Graphics.Rendering.Chart.Easy as GRCE (def, line, plot)
+import qualified Graphics.Rendering.Chart.Easy as GRCE ((.=), def, layout_title, line, plot)
 import qualified Graphics.Rendering.Chart.Backend.Cairo as GRCBC (toFile)
 import qualified Loss as L (Loss(..))
 import qualified Network as N (Network(..), random, train)
@@ -28,7 +28,8 @@ main = do
 
     GRCBC.toFile GRCE.def lossFileName $ do
         let losses = DE.fromRight [] $ snd <$> result
-        GRCE.plot (GRCE.line "am" [zip [1.. length losses] losses])
+        GRCE.layout_title GRCE..= "Training loss evolution"
+        GRCE.plot (GRCE.line "Loss" [zip [1.. length losses] losses])
 
     endTime <- DT.getCurrentTime
     putStrLn $ "Training achieved in " ++ (show $ DT.diffUTCTime endTime startTime)
