@@ -49,7 +49,10 @@ executables:
     - bytestring
     - cereal
     - cereal-vector
+    - Chart
+    - Chart-cairo
     - random
+    - time
     - vector
     - yahnn
 
