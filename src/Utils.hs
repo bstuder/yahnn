@@ -1,6 +1,6 @@
 module Utils where
 
-import qualified Data.Vector as DV (cons, drop, empty, fromListN, null, take, Vector(..), zipWith)
+import qualified Data.Vector as DV (cons, drop, empty, fromListN, maximum, minimum, null, take, Vector(..), zipWith)
 import qualified System.Random as SR (randomRs, StdGen(..))
 
 chunksOf :: Int -> DV.Vector a -> DV.Vector (DV.Vector a)

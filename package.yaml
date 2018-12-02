@@ -25,29 +25,50 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-    - random 
+    - bytestring
+    - cereal
+    - cereal-vector
+    - random
     - vector
 
 executables:
   yahnn-exe:
-    main:                Main.hs
-    source-dirs:         app
+    main: Main.hs
+    source-dirs: app
+    default-extensions:
+    - StrictData
     ghc-options:
-    - -threaded
+    - -fdiagnostics-color=always
+    - -fprint-expanded-synonyms
+    - -fprint-typechecker-elaboration
+    - -fprint-potential-instances
     - -rtsopts
+    - -threaded
     - -with-rtsopts=-N
     dependencies:
+    - bytestring
+    - cereal
+    - cereal-vector
+    - Chart
+    - Chart-cairo
     - random
-    - yahnn
+    - time
     - vector
+    - yahnn
 
 tests:
   yahnn-test:
-    main:                Spec.hs
-    source-dirs:         test
+    main: Spec.hs
+    source-dirs: test
+    default-extensions:
+    - StrictData
     ghc-options:
-    - -threaded
+    - -fdiagnostics-color=always
+    - -fprint-expanded-synonyms
+    - -fprint-typechecker-elaboration
+    - -fprint-potential-instances
     - -rtsopts
+    - -threaded
     - -with-rtsopts=-N
     dependencies:
     - hspec

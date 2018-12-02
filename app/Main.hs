@@ -1,29 +1,36 @@
 module Main where
 
-import qualified Activation as A
-import qualified Data.Vector as DV (fromList)
-import qualified Loss as L
-import qualified Network as N
-import qualified Optimizer as O
+import qualified Activation as A (Activation(..))
+import qualified Data.ByteString.Lazy as DBL (readFile)
+import qualified Data.Either as DE (fromRight)
+import qualified Data.Time as DT (diffUTCTime, getCurrentTime)
+import qualified Dataset as D (Dataset(..), fromByteString, normalize, Flag(..))
+import qualified Graphics.Rendering.Chart.Easy as GRCE ((.=), def, layout_title, line, plot)
+import qualified Graphics.Rendering.Chart.Backend.Cairo as GRCBC (toFile)
+import qualified Loss as L (Loss(..))
+import qualified Network as N (Network(..), random, train)
+import qualified Optimizer as O (Optimizer(..))
 import qualified System.Random as SR (mkStdGen)
 
 main :: IO ()
 main = do
+    let lossFileName = "loss.png"
     let generator = SR.mkStdGen 12345
-    let datapoint = DV.fromList [1, -3, 2, 7, 12, 5, 2, 6, -5, 0]
 
-    let network = N.fromList [10, 5, 2, 5, 10] [A.ReLu, A.ReLu, A.ReLu, A.ReLu] generator
+    putStrLn "Training the network on MNIST..."
+    startTime <- DT.getCurrentTime
+    input <- DBL.readFile "data/MNIST/training_set"
 
-    let forwardResult = network >>= N.forward datapoint
-    print forwardResult
+    let result = do
+            dataset <- D.normalize D.Datapoints <$> D.fromByteString input
+            network <- N.random [784, 300, 10] [A.Sigmoid, A.Sigmoid] generator
+            N.train (O.SGD 1 0.01) L.MSE network dataset
 
-    let gradient = do justNetwork <- network
-                      justForward <- forwardResult
-                      N.backward justNetwork justForward datapoint L.MSE
+    GRCBC.toFile GRCE.def lossFileName $ do
+        let losses = DE.fromRight [] $ snd <$> result
+        GRCE.layout_title GRCE..= "Training loss evolution"
+        GRCE.plot (GRCE.line "Loss" [zip [1.. length losses] losses])
 
-    print gradient
-
-    let newNetwork = do justNetwork <- network
-                        justGradient <- gradient
-                        O.apply justNetwork justGradient (O.SGD 1 0.01)
-    print newNetwork
+    endTime <- DT.getCurrentTime
+    putStrLn $ "Training achieved in " ++ show (DT.diffUTCTime endTime startTime)
+    putStrLn $ "Loss evolution chart has been saved under \"" ++ lossFileName ++"\""

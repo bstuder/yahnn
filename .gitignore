@@ -1,3 +1,6 @@
 .stack-work/
 yahnn.cabal
 *~
+*hp
+*prof
+*svg
