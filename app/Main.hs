@@ -17,7 +17,7 @@ main = do
     let result = do
             dataset <- D.normalize D.Datapoints <$> D.fromByteString input
             network <- N.random [784, 300, 10] [A.Sigmoid, A.Sigmoid] generator
-            N.train (O.SGD 1 0.01) L.MSE dataset network
+            N.train (O.SGD 1 0.01) L.MSE network dataset
 
-    print $ fst <$> result
+    print $ snd <$> result
     print "Training achieved."

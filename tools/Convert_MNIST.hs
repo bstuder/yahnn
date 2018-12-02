@@ -50,9 +50,9 @@ main = do
     let baseFolder = "data/MNIST/"
 
     print "Start trainset conversion."
-    convertMNIST (Just 50) baseFolder "training_data" "training_labels" "training_set"
+    convertMNIST (Just 100) baseFolder "training_data" "training_labels" "training_set"
     print "Trainset conversion finished."
 
     print "Start testset conversion."
-    convertMNIST Nothing baseFolder "test_data" "test_labels" "test_set"
+    convertMNIST (Just 10) baseFolder "test_data" "test_labels" "test_set"
     print "Testset conversion finished."

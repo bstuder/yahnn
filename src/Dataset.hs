@@ -12,7 +12,7 @@ module Dataset
 
 import qualified Data.ByteString.Lazy as DBL
 import qualified Data.Serialize as DS (decodeLazy, encodeLazy, Serialize)
-import qualified GHC.Generics as GG (Generic(..))
+import qualified GHC.Generics as GG (Generic)
 import qualified Matrix as M (fromVector, maximum, minimum, normalize, Matrix)
 
 
