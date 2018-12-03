@@ -133,15 +133,20 @@ normalize maybeUpperBound maybeLowerBound matrix =
     upperBound = maybe (maximum matrix) id maybeUpperBound
     lowerBound = maybe (minimum matrix) id maybeLowerBound
 
+infixr 8 !
+
+(!) :: Matrix a -> (Int, Int) -> a
+(!) (Matrix nrow ncol v) (row, col) = v DV.! (row * ncol  + col)
+
 multiplyMatrices :: RealFloat a => Matrix a -> Matrix a -> Either String (Matrix a)
 multiplyMatrices full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= multiplyMatrices full
 multiplyMatrices diagonal@DiagonalMatrix{} full@FullMatrix{} = toFull diagonal >>= flip multiplyMatrices full
 multiplyMatrices firstMatrix@(DiagonalMatrix firstSize firstVector) secondMatrix@(DiagonalMatrix secondSize secondVector)
     | firstSize /= secondSize = Left $ "Cannot multiply matrix " ++ showSize firstMatrix ++ " with matrix " ++ showSize secondMatrix
     | otherwise = Right $ DiagonalMatrix firstSize $ DV.zipWith (*) firstVector secondVector
-multiplyMatrices firstMatrix@(Matrix firstRows firstColumns _) secondMatrix@(Matrix secondRows secondColumns _)
+multiplyMatrices firstMatrix@(Matrix firstRows firstColumns v1) secondMatrix@(Matrix secondRows secondColumns v2)
     | firstColumns /= secondRows = Left $ "Cannot multiply matrix " ++ showSize firstMatrix ++ " with matrix " ++ showSize secondMatrix
-    | otherwise = Right $ Matrix firstRows secondColumns $ toRows firstMatrix >>= \row -> U.dotProduct row <$> toColumns secondMatrix
+    | otherwise = Right $ generate firstRows secondColumns (\(i, j) -> sum [ firstMatrix ! (i,k) * secondMatrix ! (k,j) | k <- [0..firstColumns-1]])
 
 showSize :: Matrix a -> String
 showSize (Matrix rows columns _) = "[" <> show rows <> " x " <> show columns <> "]"
