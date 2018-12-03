@@ -69,6 +69,12 @@ testMatrix =
         TH.it "Multiplication of a matrix and its transposed" $
             TQ.property $ \m -> DE.isRight (m `M.multiplyMatrices` M.transpose (m :: M.Matrix Double))
 
+        TH.it "Concatenation of two matricee" $ do
+            M.concatenate M.Columns (M.transpose firstFullRectangularMatrix) secondFullRectangularMatrix `TH.shouldBe` M.fromList 2 6 [1, -5, -4, 0, -2, 3, 8, 4, 0, 6, 1, -8]
+            M.concatenate M.Rows firstFullRectangularMatrix (M.transpose secondFullRectangularMatrix) `TH.shouldBe` M.fromList 6 2 [1, 8, -5, 4, -4, 0, 0, 6, -2, 1, 3, -8]
+            M.concatenate M.Columns firstFullRectangularMatrix secondFullRectangularMatrix `TH.shouldSatisfy` DE.isLeft
+            M.concatenate M.Rows firstFullRectangularMatrix secondFullRectangularMatrix `TH.shouldSatisfy` DE.isLeft
+
         TH.it "Addition of two matrices" $ do
             M.addMatrices firstFullSquareMatrix secondFullSquareMatrix `TH.shouldBe` M.fromList 2 2 [-3, 2, 11, 4]
             M.addMatrices firstDiagonalMatrix secondFullSquareMatrix `TH.shouldBe` M.fromList 2 2 [3, -1, 5, 2]

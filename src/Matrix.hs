@@ -4,7 +4,9 @@ module Matrix
 (
     addMatrices,
     applyRow,
+    Axis(..),
     pattern ColumnVector,
+    concatenate,
     pattern DiagonalMatrix,
     empty,
     equal,
@@ -27,7 +29,7 @@ module Matrix
 ) where
 
 import qualified Data.List as DL (transpose)
-import qualified Data.Vector as DV ((!), and, backpermute, fromList, generate, length, map, maximum, minimum, toList, Vector(..), zipWith)
+import qualified Data.Vector as DV ((!), (++), and, backpermute, empty, fromList, generate, length, map, maximum, minimum, toList, Vector(..), zipWith)
 import qualified Data.Vector.Serialize as DVS (genericGetVector, genericPutVector)
 import Prelude hiding (minimum, maximum)
 import qualified System.Random as R (StdGen(..), split)
@@ -45,6 +47,7 @@ data Matrix a = Matrix {
     vector  :: DV.Vector a
 } deriving (Eq, GG.Generic, Show)
 
+data Axis = Columns | Rows deriving (Eq, Show)
 
 {----- PATTERNS -----}
 
@@ -88,6 +91,16 @@ addMatrices firstMatrix@(Matrix firstRows firstColumns firstVector) secondMatrix
 applyRow :: (DV.Vector a -> b) -> Matrix a -> DV.Vector b
 applyRow function = fmap function . toRows
 
+concatenate :: RealFloat a => Axis -> Matrix a -> Matrix a -> Either String (Matrix a)
+concatenate axis full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= concatenate axis full
+concatenate axis diagonal@DiagonalMatrix{} full@FullMatrix{} = toFull diagonal >>= \matrix -> concatenate axis matrix full
+concatenate Columns firstMatrix@(Matrix firstRows firstColumns firstVector) secondMatrix@(Matrix secondRows secondColumns secondVector)
+    | firstRows /= secondRows = Left $ "Cannot append columns of matrix " ++ showSize secondMatrix ++ " to matrix " ++ showSize firstMatrix
+    | otherwise = Right $ Matrix firstRows (firstColumns + secondColumns) $ foldl (DV.++) DV.empty $ DV.zipWith (DV.++) (toRows firstMatrix) (toRows secondMatrix)
+concatenate Rows firstMatrix@(Matrix firstRows firstColumns firstVector) secondMatrix@(Matrix secondRows secondColumns secondVector)
+    | firstColumns /= secondColumns = Left $ "Cannot append rows of matrix " ++ showSize secondMatrix ++ " to matrix " ++ showSize firstMatrix
+    | otherwise = Right $ Matrix (firstRows + secondRows) firstColumns $ firstVector DV.++ secondVector
+
 empty :: Matrix a
 empty = Matrix 0 0 mempty
 
@@ -119,10 +132,10 @@ generate rows columns function =
     Matrix rows columns $ DV.generate (rows * columns) (\indice -> function (indice `div` columns, indice `mod` columns))
 
 maximum :: RealFloat a => Matrix a -> a
-maximum (Matrix _ _ vector) = DV.maximum vector
+maximum (FullMatrix _ _ vector) = DV.maximum vector
 
 minimum :: RealFloat a => Matrix a -> a
-minimum (Matrix _ _ vector) = DV.minimum vector
+minimum (FullMatrix _ _ vector) = DV.minimum vector
 
 normalize :: RealFloat a => Maybe a -> Maybe a -> Matrix a -> Matrix a
 normalize maybeUpperBound maybeLowerBound matrix =
@@ -139,7 +152,7 @@ multiplyMatrices diagonal@DiagonalMatrix{} full@FullMatrix{} = toFull diagonal >
 multiplyMatrices firstMatrix@(DiagonalMatrix firstSize firstVector) secondMatrix@(DiagonalMatrix secondSize secondVector)
     | firstSize /= secondSize = Left $ "Cannot multiply matrix " ++ showSize firstMatrix ++ " with matrix " ++ showSize secondMatrix
     | otherwise = Right $ DiagonalMatrix firstSize $ DV.zipWith (*) firstVector secondVector
-multiplyMatrices firstMatrix@(Matrix firstRows firstColumns _) secondMatrix@(Matrix secondRows secondColumns _)
+multiplyMatrices firstMatrix@(FullMatrix firstRows firstColumns _) secondMatrix@(FullMatrix secondRows secondColumns _)
     | firstColumns /= secondRows = Left $ "Cannot multiply matrix " ++ showSize firstMatrix ++ " with matrix " ++ showSize secondMatrix
     | otherwise = Right $ Matrix firstRows secondColumns $ toRows firstMatrix >>= \row -> U.dotProduct row <$> toColumns secondMatrix
 
@@ -162,7 +175,7 @@ transpose :: Matrix a -> Matrix a
 transpose diagonal@DiagonalMatrix{} = diagonal
 transpose (ColumnVector size vector) = RowVector size vector
 transpose (RowVector size vector) = ColumnVector size vector
-transpose (Matrix rows columns vector) = Matrix columns rows transposedVector
+transpose (FullMatrix rows columns vector) = Matrix columns rows transposedVector
   where
     transposedVector = DV.backpermute vector (DV.fromList newIndexes)
     newIndexes = concat . DL.transpose . take rows . iterate (fmap (+columns)) $ [0 .. columns - 1]
