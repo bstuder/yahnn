@@ -10,18 +10,20 @@ module Matrix
     pattern DiagonalMatrix,
     empty,
     equal,
-    fromLayers,
     fromList,
     fromVector,
     pattern FullMatrix,
     generate,
+    init,
     Matrix,
     maximum,
     minimum,
     multiplyMatrices,
     normalize,
     pattern RowVector,
+    singleton,
     showSize,
+    Matrix.take,
     toRows,
     toColumns,
     transpose,
@@ -29,11 +31,10 @@ module Matrix
 ) where
 
 import qualified Data.List as DL (transpose)
-import qualified Data.Vector as DV ((!), (++), and, backpermute, empty, fromList, generate, length, map, maximum, minimum, toList, Vector(..), zipWith)
+import qualified Data.Vector as DV ((!), (++), and, backpermute, empty, fromList, generate, length, map, maximum, minimum, take, toList, Vector(..), zipWith)
 import qualified Data.Vector.Serialize as DVS (genericGetVector, genericPutVector)
-import Prelude hiding (minimum, maximum)
-import qualified System.Random as R (StdGen(..), split)
-import qualified Utils as U (chunksOf, dotProduct, generateVector)
+import Prelude as P hiding (init, minimum, maximum)
+import qualified Utils as U (chunksOf, dotProduct)
 
 import qualified Data.Serialize as DS (decodeLazy, encodeLazy, Serialize)
 import qualified GHC.Generics as GG (Generic(..))
@@ -109,16 +110,6 @@ equal precision (Matrix firstRows firstColumns firstVector) (Matrix secondRows s
     | (firstRows, firstColumns) /= (secondRows, secondColumns) = False
     | otherwise = DV.and $ DV.zipWith (\x y -> abs (x - y) <= precision) firstVector secondVector
 
-fromLayers :: [Int]             -- ^ List of number or neurons per layer
-            -> R.StdGen         -- ^ Random generator
-            -> [Matrix Double]  -- ^ Matrix with the specified layers and random weights
-fromLayers [] _ = []
-fromLayers [x] _ = []
-fromLayers (x:y:xs) generator = Matrix y x randomVector : fromLayers (y:xs) secondGenerator
-  where
-    (firstGenerator, secondGenerator) = R.split generator
-    randomVector = U.generateVector (x * y) firstGenerator
-
 fromList :: Int -> Int -> [a] -> Either String (Matrix a)
 fromList rows columns list
     | (rows == columns && rows == length list) || (rows * columns == length list) = Right $ unsafeFromList rows columns list
@@ -130,6 +121,10 @@ fromVector rows columns vector = fromList rows columns $ DV.toList vector
 generate :: Int -> Int -> ((Int, Int) -> a) -> Matrix a
 generate rows columns function =
     Matrix rows columns $ DV.generate (rows * columns) (\indice -> function (indice `div` columns, indice `mod` columns))
+
+init :: RealFloat a => Axis -> Matrix a -> Either String (Matrix a)
+init Columns matrix@(Matrix rows columns vector) = Matrix.take Columns (columns - 1) matrix
+init Rows matrix@(Matrix rows columns vector) = Matrix.take Rows (rows - 1) matrix
 
 maximum :: RealFloat a => Matrix a -> a
 maximum (FullMatrix _ _ vector) = DV.maximum vector
@@ -156,8 +151,20 @@ multiplyMatrices firstMatrix@(FullMatrix firstRows firstColumns _) secondMatrix@
     | firstColumns /= secondRows = Left $ "Cannot multiply matrix " ++ showSize firstMatrix ++ " with matrix " ++ showSize secondMatrix
     | otherwise = Right $ Matrix firstRows secondColumns $ toRows firstMatrix >>= \row -> U.dotProduct row <$> toColumns secondMatrix
 
+singleton :: a -> Matrix a
+singleton value = unsafeFromList 1 1 [value]
+
 showSize :: Matrix a -> String
 showSize (Matrix rows columns _) = "[" <> show rows <> " x " <> show columns <> "]"
+
+take :: RealFloat a => Axis -> Int -> Matrix a -> Either String (Matrix a)
+take axis value diagonal@DiagonalMatrix{} = toFull diagonal >>= Matrix.take axis value
+take Columns value matrix@(Matrix rows columns vector)
+    | value >= columns = Right $ empty
+    | otherwise = Right $ Matrix rows value $ foldl (DV.++) DV.empty $ DV.take value <$> toRows matrix
+take Rows value matrix@(Matrix rows columns vector)
+    | value >= rows = Right $ empty
+    | otherwise = Right $ Matrix value columns $ DV.take (value * columns) vector
 
 toFull :: RealFloat a => Matrix a -> Either String (Matrix a)
 toFull (DiagonalMatrix size vector) = Right $ generate size size (\(row, column) -> if row == column then vector DV.! row else 0)
@@ -178,7 +185,7 @@ transpose (RowVector size vector) = ColumnVector size vector
 transpose (FullMatrix rows columns vector) = Matrix columns rows transposedVector
   where
     transposedVector = DV.backpermute vector (DV.fromList newIndexes)
-    newIndexes = concat . DL.transpose . take rows . iterate (fmap (+columns)) $ [0 .. columns - 1]
+    newIndexes = concat . DL.transpose . P.take rows . iterate (fmap (+columns)) $ [0 .. columns - 1]
 
 unsafeFromList :: Int -> Int -> [a] -> Matrix a
 unsafeFromList rows columns list = Matrix rows columns $ DV.fromList list
