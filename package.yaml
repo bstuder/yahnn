@@ -41,7 +41,6 @@ executables:
     - -fdiagnostics-color=always
     - -fprint-expanded-synonyms
     - -fprint-typechecker-elaboration
-    - -fprint-potential-instances
     - -rtsopts
     - -threaded
     - -with-rtsopts=-N
@@ -66,7 +65,6 @@ tests:
     - -fdiagnostics-color=always
     - -fprint-expanded-synonyms
     - -fprint-typechecker-elaboration
-    - -fprint-potential-instances
     - -rtsopts
     - -threaded
     - -with-rtsopts=-N
