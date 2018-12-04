@@ -66,8 +66,7 @@ forwardStep input (Network (activation:activations) (bias:biases) (weight:weight
 randomStep :: [Int] -> SR.StdGen -> Either String ([M.Matrix Double], [M.Matrix Double])
 randomStep [layer] _ = Right ([], [])
 randomStep (firstLayer : secondLayer : nextLayers) generator = do
-    let (firstGenerator, secondGenerator) = SR.split generator
-    let (_, thirdGenerator) = SR.split secondGenerator
+    let (firstGenerator, (secondGenerator, thirdGenerator)) = SR.split <$> SR.split generator
     biases <- M.fromList secondLayer 1 $ take secondLayer $ SR.randomRs (-1.0, 1.0) firstGenerator
     weights <- M.fromList secondLayer firstLayer $ take (firstLayer * secondLayer) $ SR.randomRs (-1.0, 1.0) secondGenerator
     (nextBiases, nextWeights) <- randomStep (secondLayer : nextLayers) thirdGenerator
@@ -108,7 +107,7 @@ forward :: RealFloat a =>
            M.Matrix a                           -- ^ Input of the network
            -> Network a                         -- ^ Current network
            -> Either String (ForwardResult a)   -- ^ Result of the forward pass
-forward input network  = do
+forward input network = do
     (inputs, outputs) <- unzip <$> forwardStep input network
     return ForwardResult { layerInputs = inputs, layerOutputs = input:outputs }
 
