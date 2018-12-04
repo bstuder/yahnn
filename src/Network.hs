@@ -68,7 +68,7 @@ randomStep [layer] _ = Right ([], [])
 randomStep (firstLayer : secondLayer : nextLayers) generator = do
     let (firstGenerator, secondGenerator) = SR.split generator
     let (_, thirdGenerator) = SR.split secondGenerator
-    biases <- M.fromList firstLayer 1 $ take firstLayer $ SR.randomRs (-1.0, 1.0) firstGenerator
+    biases <- M.fromList secondLayer 1 $ take secondLayer $ SR.randomRs (-1.0, 1.0) firstGenerator
     weights <- M.fromList secondLayer firstLayer $ take (firstLayer * secondLayer) $ SR.randomRs (-1.0, 1.0) secondGenerator
     (nextBiases, nextWeights) <- randomStep (secondLayer : nextLayers) thirdGenerator
     return (biases : nextBiases, weights : nextWeights)
@@ -82,7 +82,7 @@ trainStep :: RealFloat a =>
 trainStep optimizer loss accumulator (datapoint, target) = do
     (network, losses) <- accumulator
     forwardResult <- forward datapoint network
-    (biasesGradients, weightsGradients) <- backward network forwardResult target loss
+    (biasesGradients, weightsGradients) <- backward loss network target forwardResult
     newBiases <- O.optimize (biases network) biasesGradients optimizer
     newWeights <- O.optimize (weights network) weightsGradients optimizer
     lossValue <- L.forward loss (last $ layerOutputs forwardResult) target
@@ -92,12 +92,12 @@ trainStep optimizer loss accumulator (datapoint, target) = do
 {----- EXPORTED METHODS -----}
 
 backward :: RealFloat a =>
-            Network a                                       -- ^ Current Network
-            -> ForwardResult a                              -- ^ Forward pass result
+            L.Loss                                          -- ^ Loss function
+            -> Network a                                    -- ^ Current Network
             -> M.Matrix a                                   -- ^ Target vector
-            -> L.Loss                                       -- ^ Loss function
+            -> ForwardResult a                              -- ^ Forward pass result
             -> Either String ([M.Matrix a], [M.Matrix a])   -- ^ Typle of list of gradient of biases and weights
-backward (Network activations biases weights) (ForwardResult layerInputs layerOutputs) target loss = do
+backward loss (Network activations biases weights) target (ForwardResult layerInputs layerOutputs) = do
     let propagation = (,) (M.empty, M.empty) <$> L.backward loss (last layerOutputs) target
     backwardResults <- sequence $ init $ scanr computeBackwardStep propagation (DL.zip4 layerInputs activations weights (init layerOutputs))
     return $ unzip $ fst <$> backwardResults

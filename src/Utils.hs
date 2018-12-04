@@ -1,6 +1,6 @@
 module Utils where
 
-import qualified Data.Vector as DV (cons, drop, empty, fromListN, maximum, minimum, null, take, Vector(..), zipWith)
+import qualified Data.Vector as DV (cons, drop, empty, null, take, Vector(..), zipWith)
 
 chunksOf :: Int -> DV.Vector a -> DV.Vector (DV.Vector a)
 chunksOf length vector
