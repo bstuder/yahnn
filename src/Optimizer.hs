@@ -6,9 +6,9 @@ import qualified Control.Monad as CM (zipWithM)
 import qualified Matrix as M (Matrix(..), addMatrices, map)
 import qualified Data.Vector.Unboxed as DV (Unbox)
 
-data Optimizer a = SGD { momentum :: a, learningRate :: a } deriving (Eq, Show)
+data Optimizer = SGD { momentum :: Double, learningRate :: Double } deriving (Eq, Show)
 
-optimize :: (DV.Unbox a, RealFloat a) => [M.Matrix a] -> [M.Matrix a] -> Optimizer a -> Either String [M.Matrix a]
+optimize :: [M.Matrix] -> [M.Matrix] -> Optimizer -> Either String [M.Matrix]
 optimize weights gradients (SGD momentum learningRate) =
     CM.zipWithM applyGradient weights gradients
     where

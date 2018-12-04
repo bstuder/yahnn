@@ -1,7 +1,7 @@
 import qualified Activation as A
 import qualified Data.Either as DE (fromRight, isLeft, isRight)
-import qualified Data.Vector as DVB (Vector(..), empty, fromList)
-import qualified Data.Vector.Unboxed as DV (Vector(..), empty, fromList)
+import qualified Data.Vector as DVB (empty, fromList)
+import qualified Data.Vector.Unboxed as DV (Vector(..), empty, fromList, sum)
 import qualified Loss as L
 import qualified Matrix as M
 import qualified Network as N
@@ -12,16 +12,16 @@ import qualified Utils as U
 
 vector = DV.fromList [-2, 3, 6, 1, -8, -9]
 
-firstRowVector = M.unsafeFromList 1 2 [4, -6]
-secondRowVector = M.unsafeFromList 1 2 [7, 0]
-firstColumnVector = M.unsafeFromList 2 1 [6, -4]
-secondColumnVector = M.unsafeFromList 2 1 [-1, -2]
-firstFullSquareMatrix = M.unsafeFromList 2 2 [-2, 3, 6, 1]
-secondFullSquareMatrix = M.unsafeFromList 2 2 [-1, -1, 5, 3]
-firstFullRectangularMatrix = M.unsafeFromList 3 2 [1, 8, -5, 4, -4, 0]
+firstRowVector              = M.unsafeFromList 1 2 [4, -6]
+secondRowVector             = M.unsafeFromList 1 2 [7, 0]
+firstColumnVector           = M.unsafeFromList 2 1 [6, -4]
+secondColumnVector          = M.unsafeFromList 2 1 [-1, -2]
+firstFullSquareMatrix       = M.unsafeFromList 2 2 [-2, 3, 6, 1]
+secondFullSquareMatrix      = M.unsafeFromList 2 2 [-1, -1, 5, 3]
+firstFullRectangularMatrix  = M.unsafeFromList 3 2 [1, 8, -5, 4, -4, 0]
 secondFullRectangularMatrix = M.unsafeFromList 2 3 [0, -2, 3, 6, 1, -8]
-firstDiagonalMatrix = M.unsafeFromList 2 2 [4, -1]
-secondDiagonalMatrix = M.unsafeFromList 2 2 [5, 2]
+firstDiagonalMatrix         = M.unsafeFromList 2 2 [4, -1]
+secondDiagonalMatrix        = M.unsafeFromList 2 2 [5, 2]
 
 network = N.unsafeFromLists [A.ReLu, A.ReLu, A.ReLu, A.ReLu] [
         M.unsafeFromList 3 6 [2, -1, 3, 7, -5, 1, 5, -1, 2, 1, 7, -3, 6, 4, -8, 1, -2, -4],
@@ -32,18 +32,18 @@ network = N.unsafeFromLists [A.ReLu, A.ReLu, A.ReLu, A.ReLu] [
 
 generator = SR.mkStdGen 12345
 
-instance (RealFloat a, TQ.Arbitrary a) => TQ.Arbitrary (M.Matrix a) where
+instance TQ.Arbitrary M.Matrix where
     arbitrary = do
-        rows <- TQ.getPositive <$> TQ.arbitrary
+        rows    <- TQ.getPositive <$> TQ.arbitrary
         columns <- TQ.getPositive <$> TQ.arbitrary
-        list <- TQ.vector (rows * columns)
+        list    <- TQ.vector (rows * columns)
         return $ M.unsafeFromList rows columns list
 
 testUtils :: TH.Spec
 testUtils =
     TH.describe "Test of utility functions:" $
         TH.it "Chunk of a vector" $ do
-            U.chunksOf 5 (DV.empty :: DV.Vector Int) `TH.shouldBe` DVB.empty
+            U.chunksOf 5 (DV.empty :: DV.Vector Double) `TH.shouldBe` DVB.empty
             U.chunksOf 2 vector `TH.shouldBe` DVB.fromList (fmap DV.fromList [[-2, 3], [6, 1], [-8, -9]])
             U.chunksOf 5 vector `TH.shouldBe` DVB.fromList (fmap DV.fromList [[-2, 3, 6, 1, -8], [-9]])
 
@@ -57,7 +57,7 @@ testMatrix =
             firstFullRectangularMatrix `TH.shouldSatisfy` M.equal 0.2 (M.unsafeFromList 3 2 [0.81, 8.15, -5.10, 3.92, -4.04, -0.13])
 
         TH.it "Sum of matrix rows" $
-            M.applyRow sum firstFullSquareMatrix `TH.shouldBe` DVB.fromList [1, 7]
+            M.applyRow DV.sum firstFullSquareMatrix `TH.shouldBe` DVB.fromList [1, 7]
 
         TH.it "Transpose of matrices" $ do
             M.transpose firstFullRectangularMatrix `TH.shouldBe` M.unsafeFromList 2 3 [1, -5, -4, 8, 4, 0]
@@ -65,10 +65,10 @@ testMatrix =
             M.transpose firstColumnVector `TH.shouldBe` M.unsafeFromList 1 2 [6, -4]
 
         TH.it "Transpose of a matrix twice" $
-            TQ.property $ \m -> M.transpose (M.transpose m) == (m :: M.Matrix Double)
+            TQ.property $ \m -> M.transpose (M.transpose m) == (m :: M.Matrix)
 
         TH.it "Multiplication of a matrix and its transposed" $
-            TQ.property $ \m -> DE.isRight (m `M.multiplyMatrices` M.transpose (m :: M.Matrix Double))
+            TQ.property $ \m -> DE.isRight (m `M.multiplyMatrices` M.transpose (m :: M.Matrix))
 
         TH.it "Addition of two matrices" $ do
             M.addMatrices firstFullSquareMatrix secondFullSquareMatrix `TH.shouldBe` M.fromList 2 2 [-3, 2, 11, 4]

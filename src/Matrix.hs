@@ -30,7 +30,7 @@ module Matrix
 import Data.Maybe (fromMaybe)
 import qualified Data.List as DL (transpose)
 import qualified Data.Vector as DVB (Vector(..))
-import qualified Data.Vector.Unboxed as DV (Vector(..), Unbox, (!), and, backpermute, fromList, generate, length, map, maximum, minimum, toList, zipWith, empty)
+import qualified Data.Vector.Unboxed as DV (Vector(..), (!), and, backpermute, fromList, generate, length, map, maximum, minimum, toList, zipWith, empty)
 import qualified Data.Vector.Serialize as DVS (genericGetVector, genericPutVector)
 import Prelude hiding (minimum, maximum)
 import qualified System.Random as R (StdGen(..), split)
@@ -42,10 +42,10 @@ import qualified GHC.Generics as GG (Generic(..))
 
 {----- TYPES -----}
 
-data Matrix a = Matrix {
+data Matrix = Matrix {
     rows    :: Int,
     columns :: Int,
-    vector  :: DV.Vector a
+    vector  :: DV.Vector Double
 } deriving (Eq, GG.Generic, Show)
 
 
@@ -69,39 +69,39 @@ pattern SingletonMatrix vector <- Matrix 1 1 (validateVector 1 -> Just vector) w
 validateSize :: Int -> Maybe Int
 validateSize size = if size > 1 then Just size else Nothing
 
-validateVector :: DV.Unbox a => Int -> DV.Vector a -> Maybe (DV.Vector a)
+validateVector :: Int -> DV.Vector Double -> Maybe (DV.Vector Double)
 validateVector size vector = if DV.length vector == size then Just vector else Nothing
 
 {----- INSTANCES -----}
 
-instance (DS.Serialize a, DV.Unbox a) => DS.Serialize (Matrix a)
+instance DS.Serialize Matrix
 
 {----- EXPORTED METHODS -----}
 
-addMatrices :: (DV.Unbox a, RealFloat a) => Matrix a -> Matrix a -> Either String (Matrix a)
+addMatrices ::  Matrix -> Matrix -> Either String Matrix
 addMatrices full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= addMatrices full
 addMatrices diagonal@DiagonalMatrix{} full@FullMatrix{} = addMatrices full diagonal
 addMatrices firstMatrix@(Matrix firstRows firstColumns firstVector) secondMatrix@(Matrix secondRows secondColumns secondVector)
     | (firstRows /= secondRows) || (firstColumns /= secondColumns) = Left $ "Cannot add matrix " ++ showSize firstMatrix ++ " to matrix " ++ showSize secondMatrix
     | otherwise = Right $ Matrix firstRows firstColumns $ DV.zipWith (+) firstVector secondVector
 
-map :: (DV.Unbox a, DV.Unbox b) => (a -> b) -> Matrix a -> Matrix b
+map :: (Double -> Double) -> Matrix -> Matrix
 map function (Matrix rows columns vector) = Matrix rows columns $ DV.map function vector
 
-applyRow :: DV.Unbox a => (DV.Vector a -> b) -> Matrix a -> DVB.Vector b
+applyRow :: (DV.Vector Double -> Double) -> Matrix -> DVB.Vector Double
 applyRow function = fmap function . toRows
 
-empty :: DV.Unbox a => Matrix a
+empty :: Matrix
 empty = Matrix 0 0 DV.empty
 
-equal :: (DV.Unbox a, RealFloat a) => a -> Matrix a -> Matrix a -> Bool
+equal ::  Double -> Matrix -> Matrix -> Bool
 equal precision (Matrix firstRows firstColumns firstVector) (Matrix secondRows secondColumns secondVector)
     | (firstRows, firstColumns) /= (secondRows, secondColumns) = False
     | otherwise = DV.and $ DV.zipWith (\x y -> abs (x - y) <= precision) firstVector secondVector
 
 fromLayers :: [Int]             -- ^ List of number or neurons per layer
             -> R.StdGen         -- ^ Random generator
-            -> [Matrix Double]  -- ^ Matrix with the specified layers and random weights
+            -> [Matrix]  -- ^ Matrix with the specified layers and random weights
 fromLayers [] _ = []
 fromLayers [x] _ = []
 fromLayers (x:y:xs) generator = Matrix y x randomVector : fromLayers (y:xs) secondGenerator
@@ -109,25 +109,25 @@ fromLayers (x:y:xs) generator = Matrix y x randomVector : fromLayers (y:xs) seco
     (firstGenerator, secondGenerator) = R.split generator
     randomVector = U.generateVector (x * y) firstGenerator
 
-fromList :: DV.Unbox a => Int -> Int -> [a] -> Either String (Matrix a)
+fromList :: Int -> Int -> [Double] -> Either String Matrix
 fromList rows columns list
     | (rows == columns && rows == length list) || (rows * columns == length list) = Right $ unsafeFromList rows columns list
     | otherwise = Left "Mismatch between dimensions and list length"
 
-fromVector :: (DV.Unbox a, RealFloat a) => Int -> Int -> DV.Vector a -> Either String (Matrix a)
+fromVector ::  Int -> Int -> DV.Vector Double -> Either String Matrix
 fromVector rows columns vector = fromList rows columns $ DV.toList vector
 
-generate :: DV.Unbox a => Int -> Int -> ((Int, Int) -> a) -> Matrix a
+generate :: Int -> Int -> ((Int, Int) -> Double) -> Matrix
 generate rows columns function =
     Matrix rows columns $ DV.generate (rows * columns) (\indice -> function (indice `div` columns, indice `mod` columns))
 
-maximum :: (DV.Unbox a, RealFloat a) => Matrix a -> a
+maximum ::  Matrix -> Double
 maximum (Matrix _ _ vector) = DV.maximum vector
 
-minimum :: (DV.Unbox a, RealFloat a) => Matrix a -> a
+minimum ::  Matrix -> Double
 minimum (Matrix _ _ vector) = DV.minimum vector
 
-normalize :: (DV.Unbox a, RealFloat a) => Maybe a -> Maybe a -> Matrix a -> Matrix a
+normalize ::  Maybe Double -> Maybe Double -> Matrix -> Matrix
 normalize maybeUpperBound maybeLowerBound matrix = Matrix.map transform matrix
   where transform  = if upperBound == lowerBound
                        then const 0
@@ -137,10 +137,10 @@ normalize maybeUpperBound maybeLowerBound matrix = Matrix.map transform matrix
 
 infixr 8 !
 
-(!) :: DV.Unbox a => DV.Unbox a => Matrix a -> (Int, Int) -> a
+(!) :: Matrix -> (Int, Int) -> Double
 (!) (Matrix nrow ncol v) (row, col) = v DV.! (row * ncol  + col)
 
-multiplyMatrices :: (DV.Unbox a, RealFloat a) => Matrix a -> Matrix a -> Either String (Matrix a)
+multiplyMatrices ::  Matrix -> Matrix -> Either String Matrix
 multiplyMatrices full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= multiplyMatrices full
 multiplyMatrices diagonal@DiagonalMatrix{} full@FullMatrix{} = toFull diagonal >>= flip multiplyMatrices full
 multiplyMatrices firstMatrix@(DiagonalMatrix firstSize firstVector) secondMatrix@(DiagonalMatrix secondSize secondVector)
@@ -150,22 +150,22 @@ multiplyMatrices firstMatrix@(Matrix firstRows firstColumns v1) secondMatrix@(Ma
     | firstColumns /= secondRows = Left $ "Cannot multiply matrix " ++ showSize firstMatrix ++ " with matrix " ++ showSize secondMatrix
     | otherwise = Right $ generate firstRows secondColumns (\(i, j) -> sum [ firstMatrix ! (i,k) * secondMatrix ! (k,j) | k <- [0..firstColumns-1]])
 
-showSize :: Matrix a -> String
+showSize :: Matrix -> String
 showSize (Matrix rows columns _) = "[" <> show rows <> " x " <> show columns <> "]"
 
-toFull :: (DV.Unbox a, RealFloat a) => Matrix a -> Either String (Matrix a)
+toFull ::  Matrix -> Either String Matrix
 toFull (DiagonalMatrix size vector) = Right $ generate size size (\(row, column) -> if row == column then vector DV.! row else 0)
 toFull ColumnVector{} = Left "Cannot transform a column vector into a matrix"
 toFull RowVector{} = Left "Cannot transform a row vector into a matrix"
 toFull matrix@Matrix{} = Right matrix
 
-toRows :: DV.Unbox a => Matrix a -> DVB.Vector (DV.Vector a)
+toRows :: Matrix -> DVB.Vector (DV.Vector Double)
 toRows (Matrix _ columns vector) = U.chunksOf columns vector
 
-toColumns :: DV.Unbox a => Matrix a -> DVB.Vector (DV.Vector a)
+toColumns :: Matrix -> DVB.Vector (DV.Vector Double)
 toColumns = toRows . transpose
 
-transpose :: DV.Unbox a => Matrix a -> Matrix a
+transpose :: Matrix -> Matrix
 transpose diagonal@DiagonalMatrix{} = diagonal
 transpose (ColumnVector size vector) = RowVector size vector
 transpose (RowVector size vector) = ColumnVector size vector
@@ -174,5 +174,5 @@ transpose (Matrix rows columns vector) = Matrix columns rows transposedVector
     transposedVector = DV.backpermute vector (DV.fromList newIndexes)
     newIndexes = concat . DL.transpose . take rows . iterate (fmap (+columns)) $ [0 .. columns - 1]
 
-unsafeFromList :: DV.Unbox a => Int -> Int -> [a] -> Matrix a
+unsafeFromList :: Int -> Int -> [Double] -> Matrix
 unsafeFromList rows columns list = Matrix rows columns $ DV.fromList list

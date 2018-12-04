@@ -24,48 +24,45 @@ import qualified System.Random as SR (StdGen)
 
 {----- TYPES -----}
 
-data ForwardResult a = ForwardResult {
-    layerInputs :: [M.Matrix a],   -- ^ Values of the input of each activation fonction per layer
-    layerOutputs :: [M.Matrix a]   -- ^ Values of the output of each activation fonction per layer, including the input layer
+data ForwardResult = ForwardResult {
+    layerInputs  :: [M.Matrix],  -- ^ Values of the input of each activation fonction per layer
+    layerOutputs :: [M.Matrix]   -- ^ Values of the output of each activation fonction per layer, including the input layer
 } deriving (Eq, Show)
 
-data Network a = Network {
+data Network = Network {
     activations :: [A.Activation],
-    weights :: [M.Matrix a]
+    weights     :: [M.Matrix]
 } deriving (Eq, Show)
 
 
 {----- HIDDEN METHODS -----}
 
-backwardStep :: (DV.Unbox a, RealFloat a) =>
-                M.Matrix a                                  -- ^ Input of the layer
-                -> A.Activation                             -- ^ Activation function
-                -> M.Matrix a                               -- ^ Weights of current layer
-                -> M.Matrix a                               -- ^ Ouput of the previous layer
-                -> M.Matrix a                               -- ^ Current propagation
-                -> Either String (M.Matrix a, M.Matrix a)   -- ^ Gradients of the current layer, with the propagation vector
+backwardStep :: M.Matrix                              -- ^ Input of the layer
+                -> A.Activation                       -- ^ Activation function
+                -> M.Matrix                           -- ^ Weights of current layer
+                -> M.Matrix                           -- ^ Ouput of the previous layer
+                -> M.Matrix                           -- ^ Current propagation
+                -> Either String (M.Matrix, M.Matrix) -- ^ Gradients of the current layer, with the propagation vector
 backwardStep input activation weights output propagation = do
     jacobian <- A.backward activation input
     nextPropagation <- M.multiplyMatrices propagation jacobian >>= flip M.multiplyMatrices weights
     nextGradient <- M.transpose <$> (M.multiplyMatrices propagation jacobian >>= M.multiplyMatrices output)
     return (nextGradient, nextPropagation)
 
-forwardStep :: (DV.Unbox a, RealFloat a) =>
-    M.Matrix a                                   -- ^ Input of the network
-    -> Network a                                 -- ^ Current network
-    -> Either String [(M.Matrix a, M.Matrix a)]  -- ^ Inputs and outputs of the current layer.
+forwardStep :: M.Matrix                             -- ^ Input of the network
+            -> Network                              -- ^ Current network
+            -> Either String [(M.Matrix, M.Matrix)] -- ^ Inputs and outputs of the current layer.
 forwardStep input (Network [] []) = Right []
 forwardStep input (Network (activation:activations) (weight:weights)) = do
     activationInput <- M.multiplyMatrices weight input
     output <- A.forward activation activationInput
     ((activationInput, output) :) <$> forwardStep output (Network activations weights)
 
-trainStep :: (DV.Unbox a, RealFloat a) =>
-             O.Optimizer a                      -- ^ Optimizer
-             -> L.Loss                          -- ^ Loss function
-             -> Either String (Network a, [a])  -- ^ Previous trained network and losses
-             -> (M.Matrix a, M.Matrix a)        -- ^ Datapoint and target to train on
-             -> Either String (Network a, [a])  -- ^ Trained network and list of loss values
+trainStep :: O.Optimizer                          -- ^ Optimizer
+             -> L.Loss                            -- ^ Loss function
+             -> Either String (Network, [Double]) -- ^ Previous trained network and losses
+             -> (M.Matrix, M.Matrix)              -- ^ Datapoint and target to train on
+             -> Either String (Network, [Double]) -- ^ Trained network and list of loss values
 trainStep optimizer loss accumulator (datapoint, target) = do
     (network, losses) <- accumulator
     forwardResult <- forward datapoint network
@@ -77,12 +74,11 @@ trainStep optimizer loss accumulator (datapoint, target) = do
 
 {----- EXPORTED METHODS -----}
 
-backward :: (DV.Unbox a, RealFloat a) =>
-         Network a                          -- ^ Current Network
-         -> ForwardResult a                 -- ^ Forward pass result
-         -> M.Matrix a                      -- ^ Target vector
-         -> L.Loss                          -- ^ Loss function
-         -> Either String [M.Matrix a]      -- ^ List of gradient matrices
+backward :: Network                  -- ^ Current Network
+         -> ForwardResult            -- ^ Forward pass result
+         -> M.Matrix                 -- ^ Target vector
+         -> L.Loss                   -- ^ Loss function
+         -> Either String [M.Matrix] -- ^ List of gradient matrices
 backward (Network activations weights) (ForwardResult layerInputs layerOutputs) target loss = do
     let propagation = (,) M.empty <$> L.backward loss (last layerOutputs) target
     backwardResults <- sequence $ init $ scanr computeBackwardStep propagation (DL.zip4 layerInputs activations weights (init layerOutputs))
@@ -90,33 +86,32 @@ backward (Network activations weights) (ForwardResult layerInputs layerOutputs) 
   where
     computeBackwardStep (input, activation, weight, output) previous = previous >>= \(_, x) -> backwardStep input activation weight output x
 
-forward :: (DV.Unbox a, RealFloat a) =>
-           M.Matrix a                           -- ^ Input of the network
-           -> Network a                         -- ^ Current network
-           -> Either String (ForwardResult a)   -- ^ Result of the forward pass
+forward ::
+           M.Matrix                       -- ^ Input of the network
+           -> Network                     -- ^ Current network
+           -> Either String ForwardResult -- ^ Result of the forward pass
 forward input network  = do
     (inputs, outputs) <- unzip <$> forwardStep input network
     return ForwardResult { layerInputs = inputs, layerOutputs = input:outputs }
 
-fromLists :: [A.Activation] -> [M.Matrix a] -> Either String (Network a)
+fromLists :: [A.Activation] -> [M.Matrix] -> Either String Network
 fromLists activations weights
     | length activations /= length weights = Left "Mismatching dimensions between layers and weights."
     -- #TODO: test matrices's dimensions consistency
     | otherwise = Right $ unsafeFromLists activations weights
 
-random :: [Int] -> [A.Activation] -> SR.StdGen -> Either String (Network Double)
+random :: [Int] -> [A.Activation] -> SR.StdGen -> Either String Network
 random layers activations generator
     | length layers - 1 /= length activations = Left "Mismatching dimensions between layers and activations."
     | otherwise = Right $ Network activations (M.fromLayers layers generator)
 
-train :: (DV.Unbox a, RealFloat a) =>
-         O.Optimizer a                      -- ^ Optimizer
-         -> L.Loss                          -- ^ Loss function
-         -> Network a                       -- ^ Current Network
-         -> D.Dataset a                     -- ^ Dataset to train on
-         -> Either String (Network a, [a])  -- ^ Trained network and list of loss values
+train :: O.Optimizer                          -- ^ Optimizer
+         -> L.Loss                            -- ^ Loss function
+         -> Network                           -- ^ Current Network
+         -> D.Dataset                         -- ^ Dataset to train on
+         -> Either String (Network, [Double]) -- ^ Trained network and list of loss values
 train optimizer loss network (D.Dataset datapoints targets) =
     DL.foldl' (trainStep optimizer loss) (Right (network, [])) $ zip datapoints targets
 
-unsafeFromLists :: [A.Activation] -> [M.Matrix a] -> Network a
+unsafeFromLists :: [A.Activation] -> [M.Matrix] -> Network
 unsafeFromLists = Network
