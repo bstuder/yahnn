@@ -1,14 +1,16 @@
 module Utils where
 
-import qualified Data.Vector as DVB (Vector(..), cons, empty)
-import qualified Data.Vector.Unboxed as DV (Vector(..), Unbox, cons, drop, empty, fromListN, maximum, minimum, null, take, zipWith, sum)
 import qualified System.Random as SR (randomRs, StdGen(..))
+import qualified Data.Vector as DVB (Vector, empty, enumFromStepN)
+import qualified Data.Vector.Unboxed as DV (Vector, null, empty, sum, zipWith, slice, length, init, fromListN)
 
 chunksOf :: Int -> DV.Vector Double -> DVB.Vector (DV.Vector Double)
-chunksOf length vector
-    | length <= 0 = DVB.empty
+chunksOf chunkSize vector
+    | chunkSize <= 0 = DVB.empty
     | DV.null vector = DVB.empty
-    | otherwise = DV.take length vector `DVB.cons` chunksOf length (DV.drop length vector)
+    | otherwise = slicer <$> DVB.enumFromStepN 0 chunkSize numberOfSlices
+  where numberOfSlices    = DV.length vector `div` chunkSize
+        slicer startIndex = DV.slice startIndex chunkSize vector
 
 dotProduct :: DV.Vector Double -> DV.Vector Double -> Double
 dotProduct firstVector secondVector = DV.sum $ DV.zipWith (*) firstVector secondVector

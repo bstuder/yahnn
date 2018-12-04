@@ -45,7 +45,7 @@ testUtils =
         TH.it "Chunk of a vector" $ do
             U.chunksOf 5 (DV.empty :: DV.Vector Double) `TH.shouldBe` DVB.empty
             U.chunksOf 2 vector `TH.shouldBe` DVB.fromList (fmap DV.fromList [[-2, 3], [6, 1], [-8, -9]])
-            U.chunksOf 5 vector `TH.shouldBe` DVB.fromList (fmap DV.fromList [[-2, 3, 6, 1, -8], [-9]])
+            U.chunksOf 5 vector `TH.shouldBe` DVB.fromList (fmap DV.fromList [[-2, 3, 6, 1, -8]])
 
 testMatrix :: TH.Spec
 testMatrix =
@@ -116,7 +116,7 @@ testNetwork =
         let forwardResult = N.forward datapoint network
 
         TH.it "Forward of an input" $ do
-            let toColumnVector = \vector -> M.unsafeFromList (length vector) 1 vector
+            let toColumnVector vector = M.unsafeFromList (length vector) 1 vector
             forwardResult `TH.shouldBe` Right (N.ForwardResult
                 (toColumnVector <$> [[49, -29, 5], [157, 103], [260, 196, 677], [122, -3538, 491, 4400, 3339, 1090]])
                 (toColumnVector <$> [[-2, 3, 6, 1, -8, -9], [49, 0, 5], [157, 103], [260, 196, 677], [122, 0, 491, 4400, 3339, 1090]])
