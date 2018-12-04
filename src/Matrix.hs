@@ -160,10 +160,10 @@ showSize (Matrix rows columns _) = "[" <> show rows <> " x " <> show columns <> 
 take :: RealFloat a => Axis -> Int -> Matrix a -> Either String (Matrix a)
 take axis value diagonal@DiagonalMatrix{} = toFull diagonal >>= Matrix.take axis value
 take Columns value matrix@(Matrix rows columns vector)
-    | value >= columns = Right $ empty
+    | value >= columns = Right empty
     | otherwise = Right $ Matrix rows value $ toRows matrix >>=  DV.take value
 take Rows value matrix@(Matrix rows columns vector)
-    | value >= rows = Right $ empty
+    | value >= rows = Right empty
     | otherwise = Right $ Matrix value columns $ DV.take (value * columns) vector
 
 toFull :: RealFloat a => Matrix a -> Either String (Matrix a)

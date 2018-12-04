@@ -54,7 +54,7 @@ generator = SR.mkStdGen 12345
 
 equalBackwardResults :: RealFloat a => ([M.Matrix a], [M.Matrix a]) -> ([M.Matrix a], [M.Matrix a]) -> Bool
 equalBackwardResults (firstBiases, firstWeights) (secondBiases, secondWeights) =
-    (equalLists firstBiases secondBiases) && (equalLists firstWeights secondWeights)
+    equalLists firstBiases secondBiases && equalLists firstWeights secondWeights
   where
     equalLists firstList secondList = and $ zipWith (M.equal 1) firstList secondList
 
@@ -149,7 +149,7 @@ testNetwork =
         let datapoint = M.unsafeFromList 6 1 [-2, 3, 6, 1, -8, -9]
         let forwardResult = N.forward datapoint network
 
-        TH.it "Forward of an input" $ do
+        TH.it "Forward of an input" $
             forwardResult `TH.shouldBe` Right (N.ForwardResult
                 (toColumnVector <$> [[52, -31, 6], [174, 109], [282, 178, 747], [58, -4049, 582, 4754, 3384, 1345]])
                 (toColumnVector <$> [[-2, 3, 6, 1, -8, -9], [52, 0, 6], [174, 109], [282, 178, 747], [58, 0, 582, 4754, 3384, 1345]])
