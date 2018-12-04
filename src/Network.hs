@@ -14,7 +14,7 @@ module Network
 
 import qualified Activation as A (Activation(..), backward, forward)
 import qualified Data.List as DL (foldl', zip4)
-import qualified Data.Vector as DV (Vector(..), zipWith)
+import qualified Data.Vector.Unboxed as DV (Vector(..), Unbox, zipWith)
 import qualified Dataset as D (Dataset(..))
 import qualified Loss as L (backward, forward, Loss)
 import qualified Matrix as M (empty, fromLayers, Matrix, multiplyMatrices, transpose)
@@ -37,7 +37,7 @@ data Network a = Network {
 
 {----- HIDDEN METHODS -----}
 
-backwardStep :: RealFloat a =>
+backwardStep :: (DV.Unbox a, RealFloat a) =>
                 M.Matrix a                                  -- ^ Input of the layer
                 -> A.Activation                             -- ^ Activation function
                 -> M.Matrix a                               -- ^ Weights of current layer
@@ -50,7 +50,7 @@ backwardStep input activation weights output propagation = do
     nextGradient <- M.transpose <$> (M.multiplyMatrices propagation jacobian >>= M.multiplyMatrices output)
     return (nextGradient, nextPropagation)
 
-forwardStep :: RealFloat a =>
+forwardStep :: (DV.Unbox a, RealFloat a) =>
     M.Matrix a                                   -- ^ Input of the network
     -> Network a                                 -- ^ Current network
     -> Either String [(M.Matrix a, M.Matrix a)]  -- ^ Inputs and outputs of the current layer.
@@ -60,7 +60,7 @@ forwardStep input (Network (activation:activations) (weight:weights)) = do
     output <- A.forward activation activationInput
     ((activationInput, output) :) <$> forwardStep output (Network activations weights)
 
-trainStep :: RealFloat a =>
+trainStep :: (DV.Unbox a, RealFloat a) =>
              O.Optimizer a                      -- ^ Optimizer
              -> L.Loss                          -- ^ Loss function
              -> Either String (Network a, [a])  -- ^ Previous trained network and losses
@@ -77,7 +77,7 @@ trainStep optimizer loss accumulator (datapoint, target) = do
 
 {----- EXPORTED METHODS -----}
 
-backward :: RealFloat a =>
+backward :: (DV.Unbox a, RealFloat a) =>
          Network a                          -- ^ Current Network
          -> ForwardResult a                 -- ^ Forward pass result
          -> M.Matrix a                      -- ^ Target vector
@@ -90,7 +90,7 @@ backward (Network activations weights) (ForwardResult layerInputs layerOutputs) 
   where
     computeBackwardStep (input, activation, weight, output) previous = previous >>= \(_, x) -> backwardStep input activation weight output x
 
-forward :: RealFloat a =>
+forward :: (DV.Unbox a, RealFloat a) =>
            M.Matrix a                           -- ^ Input of the network
            -> Network a                         -- ^ Current network
            -> Either String (ForwardResult a)   -- ^ Result of the forward pass
@@ -109,7 +109,7 @@ random layers activations generator
     | length layers - 1 /= length activations = Left "Mismatching dimensions between layers and activations."
     | otherwise = Right $ Network activations (M.fromLayers layers generator)
 
-train :: RealFloat a =>
+train :: (DV.Unbox a, RealFloat a) =>
          O.Optimizer a                      -- ^ Optimizer
          -> L.Loss                          -- ^ Loss function
          -> Network a                       -- ^ Current Network

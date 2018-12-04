@@ -1,6 +1,7 @@
 import qualified Activation as A
 import qualified Data.Either as DE (fromRight, isLeft, isRight)
-import qualified Data.Vector as DV (empty, fromList, Vector(..))
+import qualified Data.Vector as DVB (Vector(..), empty, fromList)
+import qualified Data.Vector.Unboxed as DV (Vector(..), empty, fromList)
 import qualified Loss as L
 import qualified Matrix as M
 import qualified Network as N
@@ -42,9 +43,9 @@ testUtils :: TH.Spec
 testUtils =
     TH.describe "Test of utility functions:" $
         TH.it "Chunk of a vector" $ do
-            U.chunksOf 5 (DV.empty :: DV.Vector Int) `TH.shouldBe` DV.empty
-            U.chunksOf 2 vector `TH.shouldBe` DV.fromList (fmap DV.fromList [[-2, 3], [6, 1], [-8, -9]])
-            U.chunksOf 5 vector `TH.shouldBe` DV.fromList (fmap DV.fromList [[-2, 3, 6, 1, -8], [-9]])
+            U.chunksOf 5 (DV.empty :: DV.Vector Int) `TH.shouldBe` DVB.empty
+            U.chunksOf 2 vector `TH.shouldBe` DVB.fromList (fmap DV.fromList [[-2, 3], [6, 1], [-8, -9]])
+            U.chunksOf 5 vector `TH.shouldBe` DVB.fromList (fmap DV.fromList [[-2, 3, 6, 1, -8], [-9]])
 
 testMatrix :: TH.Spec
 testMatrix =
@@ -56,7 +57,7 @@ testMatrix =
             firstFullRectangularMatrix `TH.shouldSatisfy` M.equal 0.2 (M.unsafeFromList 3 2 [0.81, 8.15, -5.10, 3.92, -4.04, -0.13])
 
         TH.it "Sum of matrix rows" $
-            M.applyRow sum firstFullSquareMatrix `TH.shouldBe` DV.fromList [1, 7]
+            M.applyRow sum firstFullSquareMatrix `TH.shouldBe` DVB.fromList [1, 7]
 
         TH.it "Transpose of matrices" $ do
             M.transpose firstFullRectangularMatrix `TH.shouldBe` M.unsafeFromList 2 3 [1, -5, -4, 8, 4, 0]
