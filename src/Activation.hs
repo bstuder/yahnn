@@ -8,7 +8,7 @@ import qualified Matrix as M (pattern ColumnVector, empty, fromVector, Matrix)
 data Activation = ReLu | Sigmoid | SoftMax | TanH deriving (Eq, Show)
 
 forward :: RealFloat a => Activation -> M.Matrix a -> Either String (M.Matrix a)
-forward ReLu (M.ColumnVector size vector) =  M.fromVector size 1 $ (\x -> if x < 0 then 0 else x) <$> vector
+forward ReLu (M.ColumnVector size vector) = M.fromVector size 1 $ (\x -> if x < 0 then 0 else x) <$> vector
 forward Sigmoid (M.ColumnVector size vector) = M.fromVector size 1 $ (\x -> 1 / (1 + exp(-x))) <$> vector
 forward SoftMax (M.ColumnVector size vector) = M.fromVector size 1 $ (\x -> (exp x) / normalization) <$> vector
     where normalization = sum $ exp <$> vector

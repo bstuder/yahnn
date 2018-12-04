@@ -1,7 +1,6 @@
 module Utils where
 
-import qualified Data.Vector as DV (cons, drop, empty, fromListN, maximum, minimum, null, take, Vector(..), zipWith)
-import qualified System.Random as SR (randomRs, StdGen(..))
+import qualified Data.Vector as DV (cons, drop, empty, null, take, Vector(..), zipWith)
 
 chunksOf :: Int -> DV.Vector a -> DV.Vector (DV.Vector a)
 chunksOf length vector
@@ -11,6 +10,3 @@ chunksOf length vector
 
 dotProduct :: RealFloat a => DV.Vector a -> DV.Vector a -> a
 dotProduct firstVector secondVector = sum $ DV.zipWith (*) firstVector secondVector
-
-generateVector :: Int -> SR.StdGen -> DV.Vector Double
-generateVector n = DV.fromListN n . SR.randomRs (-1.0, 1.0)
