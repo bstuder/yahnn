@@ -22,12 +22,9 @@ backward loss outputMatrix@(M.ColumnVector outputSize outputVector) targetMatrix
 backward _ _ _ = Left "Wrong matrix types to compute loss backward"
 
 forward :: RealFloat a => Loss -> M.Matrix a -> M.Matrix a -> Either String a
-forward MSE (M.ColumnVector outputSize outputVector) (M.ColumnVector targetSize targetVector)
+forward loss (M.ColumnVector outputSize outputVector) (M.ColumnVector targetSize targetVector)
     | outputSize /= targetSize = Left "Mismatching dimensions between output and target"
-    | otherwise = Right $ (/ fromIntegral outputSize) . sum . fmap (**2) $ DV.zipWith (-) outputVector targetVector
-forward MSE _ _ = Left "Wrong matrix types to compute loss forward"
-
-forward NLL (M.ColumnVector outputSize outputVector) (M.ColumnVector targetSize targetVector)
-    | outputSize /= targetSize = Left "Mismatching dimensions between output and target"
-    | otherwise = Right $ U.dotProduct (negate . log <$> outputVector) targetVector
-forward NLL _ _ = Left "Wrong matrix types to compute loss forward"
+    | otherwise = case loss of
+        MSE -> Right $ (/ fromIntegral outputSize) . sum . fmap (**2) $ DV.zipWith (-) outputVector targetVector
+        NLL -> Right $ U.dotProduct (negate . log <$> outputVector) targetVector
+forward _ _ _ = Left "Wrong matrix types to compute loss forward"
