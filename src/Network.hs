@@ -3,6 +3,7 @@
 module Network
 (
     backward,
+    evaluateClassification,
     forward,
     ForwardResult(..),
     fromLists,
