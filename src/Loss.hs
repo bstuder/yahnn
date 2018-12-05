@@ -3,7 +3,7 @@
 module Loss where
 
 import qualified Data.Vector as DV (imap, zipWith)
-import qualified Matrix as M (pattern ColumnVector, empty, fromVector, imap, Matrix, sum, zipWith)
+import qualified Matrix as M (pattern ColumnVector, empty, fromVector, imap, Matrix, sum, transpose, zipWith)
 import qualified Utils as U (chunksOf, dotProduct)
 
 {----- TYPES -----}
@@ -19,8 +19,8 @@ backward loss outputMatrix@(M.ColumnVector outputSize outputVector) targetMatrix
     | otherwise = case loss of
         MSE -> M.fromVector 1 outputSize $ (/ fromIntegral outputSize) . (*2) <$> DV.zipWith (-) outputVector targetVector
         CrossEntropy -> if M.sum targetMatrix == 1
-            then M.zipWith (*) targetMatrix $ M.imap (\_ value -> -1 / value) outputMatrix
-            else Left "Cross-Entropy loss requires the target to be normalized"
+            then M.transpose <$> (M.zipWith (*) targetMatrix $ negate . (1/) <$> outputMatrix)
+            else Left $ "Cross-Entropy loss requires a normalized target"
 backward _ _ _ = Left "Wrong matrix types to compute loss backward"
 
 forward :: RealFloat a => Loss -> M.Matrix a -> M.Matrix a -> Either String a
@@ -30,5 +30,5 @@ forward loss outputMatrix@(M.ColumnVector outputSize outputVector) targetMatrix@
         MSE -> Right $ (/ fromIntegral outputSize) . sum . fmap (**2) $ DV.zipWith (-) outputVector targetVector
         CrossEntropy -> if M.sum targetMatrix == 1
             then Right $ U.dotProduct (negate . log <$> outputVector) targetVector
-            else Left "Cross-Entropy loss requires the target to be normalized"
+            else Left "Cross-Entropy loss requires a normalized target"
 forward _ _ _ = Left "Wrong matrix types to compute loss forward"

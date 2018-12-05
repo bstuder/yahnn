@@ -16,6 +16,7 @@ import qualified Activation as A (Activation(..), backward, forward)
 import qualified Data.List as DL (foldl', zip4)
 import qualified Data.Vector as DV (Vector(..), zipWith)
 import qualified Dataset as D (Dataset(..))
+import qualified Evaluator as E (ClassificationMatrix, empty, updateClassificationMatrix)
 import qualified Loss as L (backward, forward, Loss)
 import qualified Matrix as M (addMatrices, empty, fromList, Matrix, multiplyMatrices, transpose)
 import qualified Optimizer as O (optimize, Optimizer)
@@ -52,6 +53,15 @@ backwardStep input activation weights output propagation = do
     nextWeightsGradient <- M.transpose <$> (buffer >>= M.multiplyMatrices output)
     nextBiasesGradient <- M.transpose <$> buffer
     return ((nextBiasesGradient, nextWeightsGradient), nextPropagation)
+
+evaluateClassificationStep :: RealFloat a =>
+                              Network a                                 -- ^ Current network
+                              -> Either String E.ClassificationMatrix   -- ^ Result of the previous evaluation
+                              -> (M.Matrix a, M.Matrix a)               -- ^ Datapoint and target to train on
+                              -> Either String E.ClassificationMatrix   -- ^ Result of the evaluation
+evaluateClassificationStep network classificationMatrix (datapoint, target) = do
+    (ForwardResult _ layerOutputs) <- forward datapoint network
+    E.updateClassificationMatrix (last layerOutputs) target <$> classificationMatrix
 
 forwardStep :: RealFloat a =>
                M.Matrix a                                   -- ^ Input of the network
@@ -102,6 +112,13 @@ backward loss (Network activations biases weights) target (ForwardResult layerIn
     return $ unzip $ fst <$> backwardResults
   where
     computeBackwardStep (input, activation, weight, output) previous = previous >>= \(_, x) -> backwardStep input activation weight output x
+
+evaluateClassification :: RealFloat a =>
+                          Network a                                 -- ^ Current Network
+                          -> D.Dataset a                            -- ^ Dataset to evaluate on
+                          -> Either String E.ClassificationMatrix   -- ^ Result of the evaluation
+evaluateClassification network (D.Dataset datapoints targets) = do
+    DL.foldl' (evaluateClassificationStep network) (Right $ E.empty) $ zip datapoints targets
 
 forward :: RealFloat a =>
            M.Matrix a                           -- ^ Input of the network

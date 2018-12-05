@@ -16,7 +16,7 @@ chunksOf length list
 
 toOneHot :: (Num a, Ord a) => a -> a -> [Double]
 toOneHot 0 value = []
-toOneHot size value = (if value == size then 1.0 else 0.0) : toOneHot (size - 1) value
+toOneHot size value = toOneHot (size - 1) value ++ [if value + 1 == size then 1.0 else 0.0] 
 
 parseDatapoints :: Maybe DI.Int32 -> DBG.Get (Either String [M.Matrix Double])
 parseDatapoints threshold = do
@@ -50,7 +50,7 @@ main = do
     let baseFolder = "data/MNIST/"
 
     print "Start trainset conversion."
-    convertMNIST (Just 1000) baseFolder "training_data" "training_labels" "training_set"
+    convertMNIST (Just 5000) baseFolder "training_data" "training_labels" "training_set"
     print "Trainset conversion finished."
 
     print "Start testset conversion."
