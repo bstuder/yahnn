@@ -14,6 +14,7 @@ module Matrix
     fromVector,
     pattern FullMatrix,
     generate,
+    imap,
     init,
     Matrix,
     maximum,
@@ -23,17 +24,20 @@ module Matrix
     pattern RowVector,
     singleton,
     showSize,
+    sum,
     Matrix.take,
+    toDiagonal,
     toRows,
     toColumns,
     transpose,
-    unsafeFromList
+    unsafeFromList,
+    zipWith
 ) where
 
 import qualified Data.List as DL (transpose)
-import qualified Data.Vector as DV ((!), (++), and, backpermute, empty, fromList, generate, length, map, maximum, minimum, take, toList, Vector(..), zipWith)
+import qualified Data.Vector as DV ((!), (++), and, backpermute, empty, fromList, generate, imap, length, map, maximum, minimum, sum, take, toList, Vector(..), zipWith)
 import qualified Data.Vector.Serialize as DVS (genericGetVector, genericPutVector)
-import Prelude as P hiding (init, minimum, maximum)
+import Prelude as P hiding (init, minimum, maximum, sum, zipWith)
 import qualified Utils as U (chunksOf, dotProduct)
 
 import qualified Data.Serialize as DS (decodeLazy, encodeLazy, Serialize)
@@ -122,6 +126,10 @@ generate :: Int -> Int -> ((Int, Int) -> a) -> Matrix a
 generate rows columns function =
     Matrix rows columns $ DV.generate (rows * columns) (\indice -> function (indice `div` columns, indice `mod` columns))
 
+imap :: ((Int, Int) -> a -> b) -> Matrix a -> Matrix b
+imap function (Matrix rows columns vector) =
+    Matrix rows columns $ DV.imap (\indice value -> function (indice `div` columns, indice `mod` columns) value) vector
+
 init :: RealFloat a => Axis -> Matrix a -> Either String (Matrix a)
 init Columns matrix@(Matrix rows columns vector) = Matrix.take Columns (columns - 1) matrix
 init Rows matrix@(Matrix rows columns vector) = Matrix.take Rows (rows - 1) matrix
@@ -157,6 +165,9 @@ singleton value = unsafeFromList 1 1 [value]
 showSize :: Matrix a -> String
 showSize (Matrix rows columns _) = "[" <> show rows <> " x " <> show columns <> "]"
 
+sum :: RealFloat a => Matrix a -> a
+sum (Matrix _ _ vector) = DV.sum vector
+
 take :: RealFloat a => Axis -> Int -> Matrix a -> Either String (Matrix a)
 take axis value diagonal@DiagonalMatrix{} = toFull diagonal >>= Matrix.take axis value
 take Columns value matrix@(Matrix rows columns vector)
@@ -166,11 +177,17 @@ take Rows value matrix@(Matrix rows columns vector)
     | value >= rows = Right empty
     | otherwise = Right $ Matrix value columns $ DV.take (value * columns) vector
 
+toDiagonal :: RealFloat a => Matrix a -> Either String (Matrix a)
+toDiagonal matrix@DiagonalMatrix{} = Right matrix
+toDiagonal (ColumnVector size vector) = fromVector size size vector
+toDiagonal (RowVector size vector) = fromVector size size vector
+toDiagonal matrix@FullMatrix{} = Right $ imap (\(row, column) value -> if row == column then value else 0) matrix
+
 toFull :: RealFloat a => Matrix a -> Either String (Matrix a)
 toFull (DiagonalMatrix size vector) = Right $ generate size size (\(row, column) -> if row == column then vector DV.! row else 0)
 toFull ColumnVector{} = Left "Cannot transform a column vector into a matrix"
 toFull RowVector{} = Left "Cannot transform a row vector into a matrix"
-toFull matrix@Matrix{} = Right matrix
+toFull matrix@FullMatrix{} = Right matrix
 
 toRows :: Matrix a -> DV.Vector (DV.Vector a)
 toRows (Matrix _ columns vector) = U.chunksOf columns vector
@@ -189,3 +206,8 @@ transpose (FullMatrix rows columns vector) = Matrix columns rows transposedVecto
 
 unsafeFromList :: Int -> Int -> [a] -> Matrix a
 unsafeFromList rows columns list = Matrix rows columns $ DV.fromList list
+
+zipWith :: (a -> b -> c) -> Matrix a -> Matrix b -> Either String (Matrix c)
+zipWith function firstMatrix@(Matrix firstRows firstColumns firstVector) secondMatrix@(Matrix secondRows secondColumns secondVector)
+    | (firstRows /= secondRows) || (firstColumns /= secondColumns) = Left $ "Cannot zip matrix " ++ showSize firstMatrix ++ " with matrix " ++ showSize secondMatrix
+    | otherwise = Right $ Matrix firstRows firstColumns $ DV.zipWith function firstVector secondVector
