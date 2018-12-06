@@ -5,7 +5,7 @@ import qualified Data.ByteString.Lazy as DBL (readFile)
 import qualified Data.Either as DE (fromRight)
 import qualified Data.Time as DT (diffUTCTime, getCurrentTime)
 import qualified Dataset as D (Dataset(..), fromByteString, normalize, Flag(..))
-import qualified Evaluator as E (computeClassificationRate)
+import qualified Evaluator as E (f1, empty)
 import qualified Graphics.Rendering.Chart.Easy as GRCE ((.=), def, layout_title, line, plot)
 import qualified Graphics.Rendering.Chart.Backend.Cairo as GRCBC (toFile)
 import qualified Loss as L (Loss(..))
@@ -47,8 +47,8 @@ main = do
     let evaluationResult = do
             (trainedNetwork, _) <- trainingResult
             dataset <- D.normalize D.Datapoints <$> D.fromByteString input
-            N.evaluateClassification trainedNetwork dataset
+            N.evaluateClassification trainedNetwork (E.empty 10) dataset
 
-    either SE.die (print . show . E.computeClassificationRate) evaluationResult
+    either SE.die (print . show . E.f1) evaluationResult
     endTime <- DT.getCurrentTime
     putStrLn $ "Testing performed in " ++ show (DT.diffUTCTime endTime startTime)
