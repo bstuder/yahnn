@@ -3,43 +3,43 @@
 module Matrix
 (
     Axis(..),
-    Matrix,
-    pattern FullMatrix,
-    pattern DiagonalMatrix,
-    pattern RowVector,
     pattern ColumnVector,
-    Matrix.map,
-    Matrix.take,
+    pattern DiagonalMatrix,
+    pattern FullMatrix,
+    Matrix,
+    pattern RowVector,
+
+    addMatrices,
+    concatenate,
     empty,
     equal,
-    init,
-    concatenate,
-    addMatrices,
     fromList,
     fromVector,
     generate,
+    init,
+    map,
     maximum,
     minimum,
     multiplyMatrices,
     normalize,
     singleton,
     showSize,
+    Matrix.take,
     toRows,
     toColumns,
     transpose,
     unsafeFromList
 ) where
 
-import Data.Maybe (fromMaybe)
 import qualified Data.List as DL (transpose)
-import qualified Data.Vector as DV (Vector, toList)
-import qualified Data.Vector.Unboxed as DVU (Vector(..), (++), (!), and, backpermute, fromList, generate, length, map, maximum, minimum, toList, zipWith, empty, take, concat)
-import qualified Data.Vector.Serialize as DVS (genericGetVector, genericPutVector)
-import Prelude as P hiding (init, minimum, maximum)
-import qualified Utils as U (chunksOf, dotProduct)
-
+import qualified Data.Maybe as DM (fromMaybe)
 import qualified Data.Serialize as DS (decodeLazy, encodeLazy, Serialize)
-import qualified GHC.Generics as GG (Generic(..))
+import qualified Data.Vector as DV (Vector, toList)
+import qualified Data.Vector.Unboxed as DVU ((++), (!), and, backpermute, concat, empty, fromList, generate, length, map, maximum, minimum, take, toList, Vector, zipWith)
+import qualified Data.Vector.Serialize as DVS (genericGetVector, genericPutVector)
+import qualified GHC.Generics as GG (Generic)
+import Prelude as P hiding (init, map, maximum, minimum)
+import qualified Utils as U (chunksOf, dotProduct)
 
 
 {----- TYPES -----}
@@ -75,9 +75,11 @@ validateSize size = if size > 1 then Just size else Nothing
 validateVector :: Int -> DVU.Vector Double -> Maybe (DVU.Vector Double)
 validateVector size vector = if DVU.length vector == size then Just vector else Nothing
 
+
 {----- INSTANCES -----}
 
 instance DS.Serialize Matrix
+
 
 {----- EXPORTED METHODS -----}
 
@@ -92,9 +94,6 @@ addMatrices diagonal@DiagonalMatrix{} full@FullMatrix{} = addMatrices full diago
 addMatrices firstMatrix@(Matrix firstRows firstColumns firstVector) secondMatrix@(Matrix secondRows secondColumns secondVector)
     | (firstRows /= secondRows) || (firstColumns /= secondColumns) = Left $ "Cannot add matrix " ++ showSize firstMatrix ++ " to matrix " ++ showSize secondMatrix
     | otherwise = Right $ Matrix firstRows firstColumns $ DVU.zipWith (+) firstVector secondVector
-
-map :: (Double -> Double) -> Matrix -> Matrix
-map function (Matrix rows columns vector) = Matrix rows columns $ DVU.map function vector
 
 concatenate :: Axis -> Matrix -> Matrix -> Either String Matrix
 concatenate axis full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= concatenate axis full
@@ -126,23 +125,26 @@ generate :: Int -> Int -> ((Int, Int) -> Double) -> Matrix
 generate rows columns function =
     Matrix rows columns $ DVU.generate (rows * columns) (\indice -> function (indice `div` columns, indice `mod` columns))
 
+init :: Axis -> Matrix -> Either String Matrix
+init Columns matrix@(Matrix rows columns vector) = Matrix.take Columns (columns - 1) matrix
+init Rows matrix@(Matrix rows columns vector) = Matrix.take Rows (rows - 1) matrix
+
+map :: (Double -> Double) -> Matrix -> Matrix
+map function (Matrix rows columns vector) = Matrix rows columns $ DVU.map function vector
+
 maximum ::  Matrix -> Double
 maximum (Matrix _ _ vector) = DVU.maximum vector
 
 minimum ::  Matrix -> Double
 minimum (Matrix _ _ vector) = DVU.minimum vector
 
-init :: Axis -> Matrix -> Either String Matrix
-init Columns matrix@(Matrix rows columns vector) = Matrix.take Columns (columns - 1) matrix
-init Rows matrix@(Matrix rows columns vector) = Matrix.take Rows (rows - 1) matrix
-
 normalize ::  Maybe Double -> Maybe Double -> Matrix -> Matrix
-normalize maybeUpperBound maybeLowerBound matrix = Matrix.map transform matrix
+normalize maybeUpperBound maybeLowerBound matrix = map transform matrix
   where transform  = if upperBound == lowerBound
                        then const 0
                        else \x -> (2 * x - upperBound - lowerBound) / (upperBound - lowerBound)
-        upperBound = fromMaybe (maximum matrix) maybeUpperBound
-        lowerBound = fromMaybe (minimum matrix) maybeLowerBound
+        upperBound = DM.fromMaybe (maximum matrix) maybeUpperBound
+        lowerBound = DM.fromMaybe (minimum matrix) maybeLowerBound
 
 multiplyMatrices ::  Matrix -> Matrix -> Either String Matrix
 multiplyMatrices full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= multiplyMatrices full

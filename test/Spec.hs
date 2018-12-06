@@ -1,7 +1,7 @@
 import qualified Activation as A
 import qualified Data.Either as DE (fromRight, isLeft, isRight)
 import qualified Data.Vector as DV (empty, fromList)
-import qualified Data.Vector.Unboxed as DVU (Vector(..), empty, fromList, sum)
+import qualified Data.Vector.Unboxed as DVU (Vector, empty, fromList)
 import qualified Loss as L
 import qualified Matrix as M
 import qualified Network as N

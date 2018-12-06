@@ -1,7 +1,7 @@
 module Utils where
 
-import qualified Data.Vector as DV (Vector, empty, enumFromStepN)
-import qualified Data.Vector.Unboxed as DVU (Vector, null, empty, sum, zipWith, slice, length, init, fromListN)
+import qualified Data.Vector as DV (empty, enumFromStepN, Vector)
+import qualified Data.Vector.Unboxed as DVU (length, null, slice, sum, Vector, zipWith)
 
 chunksOf :: Int -> DVU.Vector Double -> DV.Vector (DVU.Vector Double)
 chunksOf chunkSize vector

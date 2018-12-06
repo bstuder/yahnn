@@ -2,8 +2,8 @@
 
 module Loss where
 
-import qualified Data.Vector.Unboxed as DVU (Unbox, zipWith, map, sum)
-import qualified Matrix as M (pattern ColumnVector, empty, fromVector, Matrix)
+import qualified Data.Vector.Unboxed as DVU (map, sum, zipWith)
+import qualified Matrix as M (pattern ColumnVector, fromVector, Matrix)
 
 data Loss = MSE deriving (Eq, Show)
 

@@ -4,17 +4,17 @@ module Dataset
 (
     Dataset(..),
     Flag(..),
+
     fromByteString,
     fromLists,
     normalize,
     toByteString
 ) where
 
-import qualified Data.ByteString.Lazy as DBL
-import qualified Data.Vector.Unboxed as DVU (Unbox)
+import qualified Data.ByteString.Lazy as DBL (ByteString)
 import qualified Data.Serialize as DS (decodeLazy, encodeLazy, Serialize)
 import qualified GHC.Generics as GG (Generic)
-import qualified Matrix as M (fromVector, maximum, minimum, normalize, Matrix)
+import qualified Matrix as M (Matrix, maximum, minimum, normalize)
 
 
 {----- TYPES -----}

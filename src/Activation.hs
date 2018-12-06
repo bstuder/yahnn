@@ -2,8 +2,8 @@
 
 module Activation where
 
-import qualified Data.Vector.Unboxed as DVU (Vector(..), Unbox, map, sum)
-import qualified Matrix as M (pattern ColumnVector, empty, fromVector, Matrix)
+import qualified Data.Vector.Unboxed as DVU (map, sum, Vector)
+import qualified Matrix as M (pattern ColumnVector, fromVector, Matrix)
 
 data Activation = ReLu | Sigmoid | SoftMax | TanH deriving (Eq, Show)
 
