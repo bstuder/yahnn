@@ -15,7 +15,7 @@ module Network
 
 import qualified Activation as A (Activation(..), backward, forward)
 import qualified Data.List as DL (foldl', zip4)
-import qualified Data.Vector as DV (Vector(..), zipWith)
+import qualified Data.Vector as DV (foldl', Vector(..), zip, zipWith)
 import qualified Dataset as D (Dataset(..))
 import qualified Evaluator as E (ConfusionMatrix, update)
 import qualified Loss as L (backward, forward, Loss)
@@ -120,7 +120,7 @@ evaluateClassification :: RealFloat a =>
                           -> D.Dataset a                        -- ^ Dataset to evaluate on
                           -> Either String E.ConfusionMatrix    -- ^ Result of the evaluation
 evaluateClassification network confusionMatrix (D.Dataset datapoints targets) = do
-    DL.foldl' (evaluateClassificationStep network) (Right $ confusionMatrix) $ zip datapoints targets
+    DV.foldl' (evaluateClassificationStep network) (Right $ confusionMatrix) $ DV.zip datapoints targets
 
 forward :: RealFloat a =>
            M.Matrix a                           -- ^ Input of the network
@@ -150,7 +150,7 @@ train :: RealFloat a =>
          -> D.Dataset a                     -- ^ Dataset to train on
          -> Either String (Network a, [a])  -- ^ Trained network and list of loss values
 train optimizer loss network (D.Dataset datapoints targets) =
-    DL.foldl' (trainStep optimizer loss) (Right (network, [])) $ zip datapoints targets
+    DV.foldl' (trainStep optimizer loss) (Right (network, [])) $ DV.zip datapoints targets
 
 unsafeFromLists :: [A.Activation] -> [M.Matrix a] -> [M.Matrix a] -> Network a
 unsafeFromLists = Network
