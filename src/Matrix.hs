@@ -2,8 +2,8 @@
 
 module Matrix
 (
-    Matrix(..),
     Axis(..),
+    Matrix,
     pattern FullMatrix,
     pattern DiagonalMatrix,
     pattern RowVector,
@@ -81,6 +81,11 @@ instance DS.Serialize Matrix
 
 {----- EXPORTED METHODS -----}
 
+infixr 8 !
+
+(!) :: Matrix -> (Int, Int) -> Double
+(!) (Matrix nrow ncol v) (row, col) = v DV.! (row * ncol  + col)
+
 addMatrices ::  Matrix -> Matrix -> Either String Matrix
 addMatrices full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= addMatrices full
 addMatrices diagonal@DiagonalMatrix{} full@FullMatrix{} = addMatrices full diagonal
@@ -138,11 +143,6 @@ normalize maybeUpperBound maybeLowerBound matrix = Matrix.map transform matrix
                        else \x -> (2 * x - upperBound - lowerBound) / (upperBound - lowerBound)
         upperBound = fromMaybe (maximum matrix) maybeUpperBound
         lowerBound = fromMaybe (minimum matrix) maybeLowerBound
-
-infixr 8 !
-
-(!) :: Matrix -> (Int, Int) -> Double
-(!) (Matrix nrow ncol v) (row, col) = v DV.! (row * ncol  + col)
 
 multiplyMatrices ::  Matrix -> Matrix -> Either String Matrix
 multiplyMatrices full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= multiplyMatrices full
