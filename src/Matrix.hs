@@ -34,7 +34,7 @@ import Data.Maybe (fromMaybe)
 import qualified Data.List as DL (transpose)
 import qualified Data.Vector as DV (Vector, toList)
 import qualified Data.Vector.Unboxed as DVU (Vector(..), (++), (!), and, backpermute, fromList, generate, length, map, maximum, minimum, toList, zipWith, empty, take, concat)
-import qualified Data.Vector.Serialize as DVUS (genericGetVector, genericPutVector)
+import qualified Data.Vector.Serialize as DVS (genericGetVector, genericPutVector)
 import Prelude as P hiding (init, minimum, maximum)
 import qualified Utils as U (chunksOf, dotProduct)
 
