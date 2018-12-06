@@ -4,7 +4,7 @@ module Optimizer where
 
 import qualified Control.Monad as CM (zipWithM)
 import qualified Matrix as M (Matrix(..), addMatrices, map)
-import qualified Data.Vector.Unboxed as DV (Unbox)
+import qualified Data.Vector.Unboxed as DVU (Unbox)
 
 data Optimizer = SGD { momentum :: Double, learningRate :: Double } deriving (Eq, Show)
 

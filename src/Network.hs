@@ -14,7 +14,7 @@ module Network
 
 import qualified Activation as A (Activation(..), backward, forward)
 import qualified Data.List as DL (foldl', zip4)
-import qualified Data.Vector.Unboxed as DV (Vector(..), Unbox, zipWith)
+import qualified Data.Vector.Unboxed as DVU (Vector(..), Unbox, zipWith)
 import qualified Dataset as D (Dataset(..))
 import qualified Loss as L (backward, forward, Loss)
 import qualified Matrix as M (addMatrices, empty, fromList, Matrix, multiplyMatrices, transpose)

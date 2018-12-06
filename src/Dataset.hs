@@ -11,7 +11,7 @@ module Dataset
 ) where
 
 import qualified Data.ByteString.Lazy as DBL
-import qualified Data.Vector.Unboxed as DV (Unbox)
+import qualified Data.Vector.Unboxed as DVU (Unbox)
 import qualified Data.Serialize as DS (decodeLazy, encodeLazy, Serialize)
 import qualified GHC.Generics as GG (Generic)
 import qualified Matrix as M (fromVector, maximum, minimum, normalize, Matrix)

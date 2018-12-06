@@ -1,7 +1,7 @@
 import qualified Activation as A
 import qualified Data.Either as DE (fromRight, isLeft, isRight)
-import qualified Data.Vector as DVB (empty, fromList)
-import qualified Data.Vector.Unboxed as DV (Vector(..), empty, fromList, sum)
+import qualified Data.Vector as DV (empty, fromList)
+import qualified Data.Vector.Unboxed as DVU (Vector(..), empty, fromList, sum)
 import qualified Loss as L
 import qualified Matrix as M
 import qualified Network as N
@@ -22,7 +22,7 @@ instance TQ.Arbitrary M.Matrix where
 
 {----- DECLARATIONS -----}
 
-vector                      = DV.fromList [-2, 3, 6, 1, -8, -9]
+vector                      = DVU.fromList [-2, 3, 6, 1, -8, -9]
 
 firstRowVector              = M.unsafeFromList 1 2 [4, -6]
 secondRowVector             = M.unsafeFromList 1 2 [7, 0]
@@ -171,9 +171,9 @@ testUtils :: TH.Spec
 testUtils =
     TH.describe "Test of utility functions:" $
         TH.it "Chunk of a vector" $ do
-            U.chunksOf 5 DV.empty `TH.shouldBe` DVB.empty
-            U.chunksOf 2 vector `TH.shouldBe` DVB.fromList (fmap DV.fromList [[-2, 3], [6, 1], [-8, -9]])
-            U.chunksOf 5 vector `TH.shouldBe` DVB.fromList (fmap DV.fromList [[-2, 3, 6, 1, -8]])
+            U.chunksOf 5 DVU.empty `TH.shouldBe` DV.empty
+            U.chunksOf 2 vector `TH.shouldBe` DV.fromList (fmap DVU.fromList [[-2, 3], [6, 1], [-8, -9]])
+            U.chunksOf 5 vector `TH.shouldBe` DV.fromList (fmap DVU.fromList [[-2, 3, 6, 1, -8]])
 
 
 {----- MAIN -----}
