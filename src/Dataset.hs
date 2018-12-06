@@ -4,23 +4,24 @@ module Dataset
 (
     Dataset(..),
     Flag(..),
+
     fromByteString,
     fromLists,
     normalize,
     toByteString
 ) where
 
-import qualified Data.ByteString.Lazy as DBL
+import qualified Data.ByteString.Lazy as DBL (ByteString)
 import qualified Data.Serialize as DS (decodeLazy, encodeLazy, Serialize)
 import qualified GHC.Generics as GG (Generic)
-import qualified Matrix as M (fromVector, maximum, minimum, normalize, Matrix)
+import qualified Matrix as M (Matrix, maximum, minimum, normalize)
 
 
 {----- TYPES -----}
 
-data Dataset a = Dataset {
-    datapoints :: [M.Matrix a],
-    targets    :: [M.Matrix a]
+data Dataset = Dataset {
+    datapoints :: [M.Matrix],
+    targets    :: [M.Matrix]
 } deriving (Eq, GG.Generic, Show)
 
 data Flag = Both | Datapoints | Targets deriving (Eq, Show)
@@ -28,14 +29,11 @@ data Flag = Both | Datapoints | Targets deriving (Eq, Show)
 
 {----- INSTANCES -----}
 
-instance (DS.Serialize a) => DS.Serialize (Dataset a)
-instance Functor Dataset where
-    fmap function (Dataset datapoints targets) = Dataset ((function <$>) <$> datapoints) ((function <$>) <$> targets)
-
+instance DS.Serialize Dataset
 
 {----- HIDDEN METHODS -----}
 
-normalizeFlag :: RealFloat a => Flag -> Flag -> [M.Matrix a] -> [M.Matrix a]
+normalizeFlag :: Flag -> Flag -> [M.Matrix] -> [M.Matrix]
 normalizeFlag inputFlag referenceFlag matrices =
     if (inputFlag == referenceFlag) || (inputFlag == Both)
         then M.normalize (Just upperBound) (Just lowerBound) <$> matrices
@@ -47,16 +45,16 @@ normalizeFlag inputFlag referenceFlag matrices =
 
 {----- EXPORTED METHODS -----}
 
-fromByteString :: DBL.ByteString -> Either String (Dataset Double)
+fromByteString :: DBL.ByteString -> Either String Dataset
 fromByteString = DS.decodeLazy
 
-fromLists :: [M.Matrix a] -> [M.Matrix a] -> Either String (Dataset a)
+fromLists :: [M.Matrix] -> [M.Matrix] -> Either String Dataset
 fromLists datapoints targets
     | length datapoints /= length targets = Left "Mismatching dimensions between datapoints and targets."
     | otherwise = Right $ Dataset datapoints targets
 
-normalize :: RealFloat a => Flag -> Dataset a -> Dataset a
+normalize :: Flag -> Dataset -> Dataset
 normalize flag (Dataset datapoints targets) = Dataset (normalizeFlag flag Datapoints datapoints) (normalizeFlag flag Targets targets)
 
-toByteString :: Dataset Double -> DBL.ByteString
+toByteString :: Dataset -> DBL.ByteString
 toByteString = DS.encodeLazy
