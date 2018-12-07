@@ -43,7 +43,7 @@ import qualified Data.Vector.Unboxed as DVU ((++), (!), and, backpermute, concat
 import qualified Data.Vector.Serialize ()
 import qualified GHC.Generics as GG (Generic)
 import Prelude as P hiding (init, map, maximum, minimum, zipWith)
-import qualified Utils as U (chunksOf)
+import qualified Utils as U (chunksOf, equalDouble)
 
 
 {----- TYPES -----}
@@ -115,9 +115,7 @@ empty = Matrix 0 0 mempty
 equal ::  Double -> Matrix -> Matrix -> Bool
 equal precision (Matrix firstRows firstColumns firstVector) (Matrix secondRows secondColumns secondVector)
     | (firstRows, firstColumns) /= (secondRows, secondColumns) = False
-    | otherwise = DVU.and $ DVU.zipWith checkRatio firstVector secondVector
-  where
-    checkRatio x y = if x == 0 && y == 0 then True else abs (x - y) / max (abs x) (abs y) <= precision
+    | otherwise = DVU.and $ DVU.zipWith (U.equalDouble precision) firstVector secondVector
 
 fromList :: Int -> Int -> [Double] -> Either String Matrix
 fromList rows columns list

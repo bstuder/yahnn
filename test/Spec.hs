@@ -29,6 +29,9 @@ equalBackwardResults (firstBiases, firstWeights) (secondBiases, secondWeights) =
   where
     equalLists firstList secondList = and $ zipWith (M.equal 1e-5) firstList secondList
 
+equalDouble :: Double -> Either String Double -> Bool
+equalDouble firstValue secondValue = DE.fromRight False $ U.equalDouble 1e-5 firstValue <$> secondValue
+
 equalMatrix :: M.Matrix -> Either String M.Matrix -> Bool
 equalMatrix firstMatrix secondMatrix = DE.fromRight False $ M.equal 1e-5 firstMatrix <$> secondMatrix
 
@@ -55,6 +58,23 @@ testActivation = do
                 -0.0261722615352278, -0.0390444261513795, -0.0353288577475099, 0.1149091871075464, -0.0143636416734291,
                 -0.021428035396491, -0.0319668724264166, -0.0289248223090037, -0.0143636416734291, 0.0966833718053404
                 ])
+
+testLosses :: TH.Spec
+testLosses = do
+    let input = M.unsafeFromList 5 1 [-0.1, 0.3, 0.2, -0.5, -0.7]
+    let target = M.unsafeFromList 5 1 [0, 0, 1, 0, 0]
+
+    TH.describe "Test of losses functions:" $ do
+        TH.it "Cross-Entropy function" $ do
+            let transformedInput = (M.map abs input)
+            L.forward L.CrossEntropy transformedInput target `TH.shouldSatisfy` (equalDouble 1.6094379124341003)
+            L.backward L.CrossEntropy transformedInput target `TH.shouldSatisfy` (equalMatrix $ M.unsafeFromList 1 5 [0, 0, -5, 0, 0])
+        TH.it "Mean Squared Error function" $ do
+            L.forward L.MSE input target `TH.shouldSatisfy` (equalDouble 0.296)
+            L.backward L.MSE input target `TH.shouldSatisfy` (equalMatrix $ M.unsafeFromList 1 5 [-0.04, 0.12, -0.32, -0.2, -0.28])
+        TH.it "Negative Log Likelihood with SoftMax function" $ do
+            L.forward L.NLLSoftMax input target `TH.shouldSatisfy` (equalDouble 1.3215275745422457)
+            L.backward L.NLLSoftMax input target `TH.shouldSatisfy` (equalMatrix $ M.unsafeFromList 1 5 [0.1975966248481474, 0.2947795251190231, -0.733272455601437, 0.1324529786646971, 0.1084433269695693])
 
 testMatrix :: TH.Spec
 testMatrix = do
@@ -194,4 +214,5 @@ main = TH.hspec $ do
     testUtils
     testMatrix
     testActivation
+    testLosses
     testNetwork

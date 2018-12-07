@@ -25,8 +25,8 @@ main = do
 
     let trainingResult = do
             dataset <- D.normalize D.Datapoints <$> D.fromByteString input
-            network <- N.random [784, 300, 10] [A.Sigmoid, A.Sigmoid] generator
-            N.train (O.SGD 1 0.01) L.MSE network dataset
+            network <- N.random [784, 300, 10] [A.Sigmoid, A.Identity] generator
+            N.train (O.SGD 1 0.01) L.NLLSoftMax network dataset
 
     either SE.die ((writeFile (lossFileName ++ ".txt")) . show . snd) trainingResult
 
