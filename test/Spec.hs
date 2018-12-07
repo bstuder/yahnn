@@ -1,6 +1,7 @@
 import qualified Activation as A
 import qualified Data.Either as DE (fromRight, isLeft, isRight)
-import qualified Data.Vector as DV (empty, fromList, Vector(..))
+import qualified Data.Vector as DV (empty, fromList)
+import qualified Data.Vector.Unboxed as DVU (empty, fromList)
 import qualified Loss as L
 import qualified Matrix as M
 import qualified Network as N
@@ -12,67 +13,50 @@ import qualified Utils as U
 
 {----- INSTANCES -----}
 
-instance (RealFloat a, TQ.Arbitrary a) => TQ.Arbitrary (M.Matrix a) where
+instance TQ.Arbitrary M.Matrix where
     arbitrary = do
-        rows <- TQ.getPositive <$> TQ.arbitrary
+        rows    <- TQ.getPositive <$> TQ.arbitrary
         columns <- TQ.getPositive <$> TQ.arbitrary
-        list <- TQ.vector (rows * columns)
+        list    <- TQ.vector (rows * columns)
         return $ M.unsafeFromList rows columns list
-
-
-{----- DECLARATIONS -----}
-
-vector = DV.fromList [-2, 3, 6, 1, -8, -9]
-
-firstRowVector = M.unsafeFromList 1 2 [4, -6]
-secondRowVector = M.unsafeFromList 1 2 [7, 0]
-firstColumnVector = M.unsafeFromList 2 1 [6, -4]
-secondColumnVector = M.unsafeFromList 2 1 [-1, -2]
-firstFullSquareMatrix = M.unsafeFromList 2 2 [-2, 3, 6, 1]
-secondFullSquareMatrix = M.unsafeFromList 2 2 [-1, -1, 5, 3]
-firstFullRectangularMatrix = M.unsafeFromList 3 2 [1, 8, -5, 4, -4, 0]
-secondFullRectangularMatrix = M.unsafeFromList 2 3 [0, -2, 3, 6, 1, -8]
-firstDiagonalMatrix = M.unsafeFromList 2 2 [4, -1]
-secondDiagonalMatrix = M.unsafeFromList 2 2 [5, 2]
-
-network = N.unsafeFromLists [A.ReLu, A.ReLu, A.ReLu, A.ReLu] [
-        M.unsafeFromList 3 1 [3, -2, 1],
-        M.unsafeFromList 2 1 [6, -1],
-        M.unsafeFromList 3 1 [-1, 2, 7],
-        M.unsafeFromList 6 1 [4, 3, -7, 0, 1, -1]
-    ] [
-        M.unsafeFromList 3 6 [2, -1, 3, 7, -5, 1, 5, -1, 2, 1, 7, -3, 6, 4, -8, 1, -2, -4],
-        M.unsafeFromList 2 3 [3, -1, 2, 2, -5, 1],
-        M.unsafeFromList 3 2 [1, 1, -4, 8, 3, 2],
-        M.unsafeFromList 6 3 [-7, 3, 2, -1, 4, -6, 6, -2, -1, 5, 2, 4, -1, 8, 3, 2, -4, 2]
-    ]
-
-generator = SR.mkStdGen 12345
 
 
 {----- UTILITY METHODS -----}
 
-equalBackwardResults :: RealFloat a => ([M.Matrix a], [M.Matrix a]) -> ([M.Matrix a], [M.Matrix a]) -> Bool
+equalBackwardResults :: ([M.Matrix], [M.Matrix]) -> ([M.Matrix], [M.Matrix]) -> Bool
 equalBackwardResults (firstBiases, firstWeights) (secondBiases, secondWeights) =
     equalLists firstBiases secondBiases && equalLists firstWeights secondWeights
   where
     equalLists firstList secondList = and $ zipWith (M.equal 1) firstList secondList
 
-toColumnVector :: [a] -> M.Matrix a
+toColumnVector :: [Double] -> M.Matrix
 toColumnVector list = M.unsafeFromList (length list) 1 list
 
 
 {----- TEST METHODS -----}
 
 testActivation :: TH.Spec
-testActivation =
+testActivation = do
+    let columnVector = M.unsafeFromList 2 1 [6, -4]
+
     TH.describe "Test of activation functions:" $
         TH.it "ReLu activation function" $ do
-            A.forward A.ReLu firstColumnVector `TH.shouldBe` M.fromList 2 1 [6, 0]
-            A.backward A.ReLu firstColumnVector `TH.shouldBe` M.fromList 2 2 [1, 0]
+            A.forward A.ReLu columnVector `TH.shouldBe` M.fromList 2 1 [6, 0]
+            A.backward A.ReLu columnVector `TH.shouldBe` M.fromList 2 2 [1, 0]
 
 testMatrix :: TH.Spec
-testMatrix =
+testMatrix = do
+    let firstRowVector = M.unsafeFromList 1 2 [4, -6]
+    let secondRowVector = M.unsafeFromList 1 2 [7, 0]
+    let firstColumnVector = M.unsafeFromList 2 1 [6, -4]
+    let secondColumnVector = M.unsafeFromList 2 1 [-1, -2]
+    let firstFullSquareMatrix = M.unsafeFromList 2 2 [-2, 3, 6, 1]
+    let secondFullSquareMatrix = M.unsafeFromList 2 2 [-1, -1, 5, 3]
+    let firstFullRectangularMatrix = M.unsafeFromList 3 2 [1, 8, -5, 4, -4, 0]
+    let secondFullRectangularMatrix = M.unsafeFromList 2 3 [0, -2, 3, 6, 1, -8]
+    let firstDiagonalMatrix = M.unsafeFromList 2 2 [4, -1]
+    let secondDiagonalMatrix = M.unsafeFromList 2 2 [5, 2]
+
     TH.describe "Test of linear algebra functions:" $ do
         TH.it "Equality between matrices with tolerance" $ do
             firstFullRectangularMatrix `TH.shouldSatisfy` M.equal 0 firstFullRectangularMatrix
@@ -88,19 +72,16 @@ testMatrix =
             M.take M.Columns 10 firstFullRectangularMatrix `TH.shouldBe` Right M.empty
             M.take M.Rows 10 firstFullRectangularMatrix `TH.shouldBe` Right M.empty
 
-        TH.it "Sum of matrix rows" $
-            M.applyRow sum firstFullSquareMatrix `TH.shouldBe` DV.fromList [1, 7]
-
         TH.it "Transpose of matrices" $ do
             M.transpose firstFullRectangularMatrix `TH.shouldBe` M.unsafeFromList 2 3 [1, -5, -4, 8, 4, 0]
             M.transpose firstDiagonalMatrix `TH.shouldBe` firstDiagonalMatrix
             M.transpose firstColumnVector `TH.shouldBe` M.unsafeFromList 1 2 [6, -4]
 
         TH.it "Transpose of a matrix twice" $
-            TQ.property $ \m -> M.transpose (M.transpose m) == (m :: M.Matrix Double)
+            TQ.property $ \m -> M.transpose (M.transpose m) == (m :: M.Matrix)
 
         TH.it "Multiplication of a matrix and its transposed" $
-            TQ.property $ \m -> DE.isRight (m `M.multiplyMatrices` M.transpose (m :: M.Matrix Double))
+            TQ.property $ \m -> DE.isRight (m `M.multiplyMatrices` M.transpose (m :: M.Matrix))
 
         TH.it "Concatenation of two matricee" $ do
             M.concatenate M.Columns (M.transpose firstFullRectangularMatrix) secondFullRectangularMatrix `TH.shouldBe` M.fromList 2 6 [1, -5, -4, 0, -2, 3, 8, 4, 0, 6, 1, -8]
@@ -134,7 +115,21 @@ testMatrix =
             M.multiplyMatrices firstColumnVector secondDiagonalMatrix `TH.shouldSatisfy` DE.isLeft
 
 testNetwork :: TH.Spec
-testNetwork =
+testNetwork = do
+    let generator = SR.mkStdGen 12345
+    let datapoint = M.unsafeFromList 6 1 [-2, 3, 6, 1, -8, -9]
+    let network = N.unsafeFromLists [A.ReLu, A.ReLu, A.ReLu, A.ReLu] [
+            M.unsafeFromList 3 1 [3, -2, 1],
+            M.unsafeFromList 2 1 [6, -1],
+            M.unsafeFromList 3 1 [-1, 2, 7],
+            M.unsafeFromList 6 1 [4, 3, -7, 0, 1, -1]
+            ] [
+            M.unsafeFromList 3 6 [2, -1, 3, 7, -5, 1, 5, -1, 2, 1, 7, -3, 6, 4, -8, 1, -2, -4],
+            M.unsafeFromList 2 3 [3, -1, 2, 2, -5, 1],
+            M.unsafeFromList 3 2 [1, 1, -4, 8, 3, 2],
+            M.unsafeFromList 6 3 [-7, 3, 2, -1, 4, -6, 6, -2, -1, 5, 2, 4, -1, 8, 3, 2, -4, 2]
+            ]
+
     TH.describe "Test of network functions:" $ do
         TH.it "Generation of a random network" $ do
             N.random [3, 2, 1] [A.ReLu, A.TanH] generator `TH.shouldBe` N.fromLists [A.ReLu, A.TanH] [
@@ -146,7 +141,6 @@ testNetwork =
                 ]
             N.random [3, 2] [A.ReLu, A.TanH] generator `TH.shouldSatisfy` DE.isLeft
 
-        let datapoint = M.unsafeFromList 6 1 [-2, 3, 6, 1, -8, -9]
         let forwardResult = N.forward datapoint network
 
         TH.it "Forward of an input" $
@@ -171,12 +165,14 @@ testNetwork =
             (forwardResult >>= N.backward L.MSE network datapoint) `TH.shouldSatisfy` (\backwardResult -> DE.fromRight False $ equalBackwardResults backwardExpected <$> backwardResult)
 
 testUtils :: TH.Spec
-testUtils =
+testUtils = do
+    let vector = DVU.fromList [-2, 3, 6, 1, -8, -9]
+
     TH.describe "Test of utility functions:" $
         TH.it "Chunk of a vector" $ do
-            U.chunksOf 5 (DV.empty :: DV.Vector Int) `TH.shouldBe` DV.empty
-            U.chunksOf 2 vector `TH.shouldBe` DV.fromList (fmap DV.fromList [[-2, 3], [6, 1], [-8, -9]])
-            U.chunksOf 5 vector `TH.shouldBe` DV.fromList (fmap DV.fromList [[-2, 3, 6, 1, -8], [-9]])
+            U.chunksOf 5 DVU.empty `TH.shouldBe` DV.empty
+            U.chunksOf 2 vector `TH.shouldBe` DV.fromList (fmap DVU.fromList [[-2, 3], [6, 1], [-8, -9]])
+            U.chunksOf 5 vector `TH.shouldBe` DV.fromList (fmap DVU.fromList [[-2, 3, 6, 1, -8]])
 
 
 {----- MAIN -----}

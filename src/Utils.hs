@@ -1,12 +1,15 @@
 module Utils where
 
-import qualified Data.Vector as DV (cons, drop, empty, null, take, Vector(..), zipWith)
+import qualified Data.Vector as DV (empty, enumFromStepN, Vector)
+import qualified Data.Vector.Unboxed as DVU (length, null, slice, sum, Vector, zipWith)
 
-chunksOf :: Int -> DV.Vector a -> DV.Vector (DV.Vector a)
-chunksOf length vector
-    | length <= 0 = DV.empty
-    | DV.null vector = DV.empty
-    | otherwise = DV.take length vector `DV.cons` chunksOf length (DV.drop length vector)
+chunksOf :: Int -> DVU.Vector Double -> DV.Vector (DVU.Vector Double)
+chunksOf chunkSize vector
+    | chunkSize <= 0 = DV.empty
+    | DVU.null vector = DV.empty
+    | otherwise = slicer <$> DV.enumFromStepN 0 chunkSize numberOfSlices
+  where numberOfSlices    = DVU.length vector `div` chunkSize
+        slicer startIndex = DVU.slice startIndex chunkSize vector
 
-dotProduct :: RealFloat a => DV.Vector a -> DV.Vector a -> a
-dotProduct firstVector secondVector = sum $ DV.zipWith (*) firstVector secondVector
+dotProduct :: DVU.Vector Double -> DVU.Vector Double -> Double
+dotProduct firstVector secondVector = DVU.sum $ DVU.zipWith (*) firstVector secondVector

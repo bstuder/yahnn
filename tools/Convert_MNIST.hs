@@ -18,7 +18,7 @@ toOneHot :: (Num a, Ord a) => a -> a -> [Double]
 toOneHot 0 value = []
 toOneHot size value = toOneHot (size - 1) value ++ [if value + 1 == size then 1.0 else 0.0] 
 
-parseDatapoints :: Maybe DI.Int32 -> DBG.Get (Either String [M.Matrix Double])
+parseDatapoints :: Maybe DI.Int32 -> DBG.Get (Either String [M.Matrix])
 parseDatapoints threshold = do
     magicNumber <- DBG.getInt32be
     items <- DBG.getInt32be
@@ -27,7 +27,7 @@ parseDatapoints threshold = do
     rawData <- DBG.getLazyByteString $ fromIntegral (itemSize * numberOfItems)
     return $! sequence $ M.fromList (fromIntegral itemSize) 1 <$> chunksOf (fromIntegral itemSize) (fromIntegral <$> DBL.unpack rawData)
 
-parseLabels :: Maybe DI.Int32 -> DBG.Get (Either String [M.Matrix Double])
+parseLabels :: Maybe DI.Int32 -> DBG.Get (Either String [M.Matrix])
 parseLabels threshold = do
     magicNumber <- DBG.getInt32be
     items <- DBG.getInt32be

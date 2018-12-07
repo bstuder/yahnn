@@ -24,6 +24,20 @@ dependencies:
 
 library:
   source-dirs: src
+  ghc-options:
+  - -fdiagnostics-color=always
+  - -fprint-expanded-synonyms
+  - -fprint-typechecker-elaboration
+  - -fwarn-dodgy-exports
+  - -fwarn-dodgy-imports
+  - -fwarn-duplicate-exports
+  - -fwarn-missing-signatures
+  - -fwarn-unused-binds
+  - -fwarn-unused-imports
+  - -fwarn-unused-matches
+  - -fwarn-unused-do-bind
+  - -fwarn-wrong-do-bind
+  - -fwarn-warnings-deprecations
   dependencies:
     - bytestring
     - cereal
@@ -41,7 +55,16 @@ executables:
     - -fdiagnostics-color=always
     - -fprint-expanded-synonyms
     - -fprint-typechecker-elaboration
-    - -fprint-potential-instances
+    - -fwarn-dodgy-exports
+    - -fwarn-dodgy-imports
+    - -fwarn-duplicate-exports
+    - -fwarn-missing-signatures
+    - -fwarn-unused-binds
+    - -fwarn-unused-imports
+    - -fwarn-unused-matches
+    - -fwarn-unused-do-bind
+    - -fwarn-wrong-do-bind
+    - -fwarn-warnings-deprecations
     - -rtsopts
     - -threaded
     - -with-rtsopts=-N
@@ -66,7 +89,16 @@ tests:
     - -fdiagnostics-color=always
     - -fprint-expanded-synonyms
     - -fprint-typechecker-elaboration
-    - -fprint-potential-instances
+    - -fwarn-dodgy-exports
+    - -fwarn-dodgy-imports
+    - -fwarn-duplicate-exports
+    - -fwarn-missing-signatures
+    - -fwarn-unused-binds
+    - -fwarn-unused-imports
+    - -fwarn-unused-matches
+    - -fwarn-unused-do-bind
+    - -fwarn-wrong-do-bind
+    - -fwarn-warnings-deprecations
     - -rtsopts
     - -threaded
     - -with-rtsopts=-N

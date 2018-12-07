@@ -8,8 +8,8 @@ module Evaluator
     update
 ) where
 
-import qualified Data.List as DL (genericLength, zip4)
-import qualified Data.Vector as DV (foldl, maximum, zip)
+import qualified Data.List as DL (zip4)
+import qualified Data.Vector.Unboxed as DVU (foldl, maximum, zip)
 import qualified Matrix as M (pattern ColumnVector, Matrix)
 
 
@@ -36,16 +36,16 @@ f1 :: ConfusionMatrix -> Double
 f1 (ConfusionMatrix falseNegatives falsePositives trueNegatives truePositives) =
     (sum $ compute <$> DL.zip4 falseNegatives falsePositives trueNegatives truePositives) / (fromIntegral $ length falseNegatives)
   where
-    compute (falseNegative, falsePositive, trueNegative, truePositive) = (fromIntegral $ 2 * truePositive) / (fromIntegral $ 2 * truePositive + falsePositive + falseNegative)
+    compute (falseNegative, falsePositive, _, truePositive) = (fromIntegral $ 2 * truePositive) / (fromIntegral $ 2 * truePositive + falsePositive + falseNegative)
 
 empty :: Int -> ConfusionMatrix
 empty numberOfClasses = ConfusionMatrix emptyList emptyList emptyList emptyList
   where
     emptyList = replicate numberOfClasses 0
 
-update :: RealFloat a => M.Matrix a -> M.Matrix a -> ConfusionMatrix -> ConfusionMatrix
-update (M.ColumnVector outputSize outputVector) (M.ColumnVector targetSize targetVector) confusionMatrix =
-    add confusionMatrix $ DV.foldl appendConfusionMatrix (empty 0) $ DV.zip outputVector targetVector
+update :: M.Matrix -> M.Matrix -> ConfusionMatrix -> ConfusionMatrix
+update (M.ColumnVector _ outputVector) (M.ColumnVector _ targetVector) confusionMatrix =
+    add confusionMatrix $ DVU.foldl appendConfusionMatrix (empty 0) $ DVU.zip outputVector targetVector
   where
     appendConfusionMatrix (ConfusionMatrix falseNegatives falsePositives trueNegatives truePositives) (output, target)
         | output == maximum && target == 1 = ConfusionMatrix (falseNegatives ++ [0]) (falsePositives ++ [0]) (trueNegatives ++ [0]) (truePositives ++ [1])
@@ -53,4 +53,4 @@ update (M.ColumnVector outputSize outputVector) (M.ColumnVector targetSize targe
         | output == maximum && target /= 1 = ConfusionMatrix (falseNegatives ++ [0]) (falsePositives ++ [1]) (trueNegatives ++ [0]) (truePositives ++ [0])
         | output /= maximum && target /= 1 = ConfusionMatrix (falseNegatives ++ [0]) (falsePositives ++ [0]) (trueNegatives ++ [1]) (truePositives ++ [0])
       where
-        maximum = DV.maximum outputVector
+        maximum = DVU.maximum outputVector
