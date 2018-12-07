@@ -1,4 +1,4 @@
-{-# LANGUAGE Strict #-}
+{-# LANGUAGE Strict, ViewPatterns #-}
 
 module Network
 (
@@ -73,7 +73,7 @@ forwardStep input (Network (activation:activations) (bias:biases) (weight:weight
     ((activationInput, activationOutput) :) <$> forwardStep activationOutput (Network activations biases weights)
 
 randomStep :: [Int] -> SR.StdGen -> Either String ([M.Matrix], [M.Matrix])
-randomStep [layer] _ = Right ([], [])
+randomStep (length -> 1) _ = Right ([], [])
 randomStep (firstLayer : secondLayer : nextLayers) generator = do
     let (firstGenerator, (secondGenerator, thirdGenerator)) = SR.split <$> SR.split generator
     biases <- M.fromList secondLayer 1 $ take secondLayer $ SR.randomRs (-1.0, 1.0) firstGenerator

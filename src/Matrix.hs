@@ -115,7 +115,9 @@ empty = Matrix 0 0 mempty
 equal ::  Double -> Matrix -> Matrix -> Bool
 equal precision (Matrix firstRows firstColumns firstVector) (Matrix secondRows secondColumns secondVector)
     | (firstRows, firstColumns) /= (secondRows, secondColumns) = False
-    | otherwise = DVU.and $ DVU.zipWith (\x y -> abs (x - y) <= precision) firstVector secondVector
+    | otherwise = DVU.and $ DVU.zipWith checkRatio firstVector secondVector
+  where
+    checkRatio x y = if x == 0 && y == 0 then True else abs (x - y) / max (abs x) (abs y) <= precision
 
 fromList :: Int -> Int -> [Double] -> Either String Matrix
 fromList rows columns list

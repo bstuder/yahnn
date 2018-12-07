@@ -27,7 +27,10 @@ equalBackwardResults :: ([M.Matrix], [M.Matrix]) -> ([M.Matrix], [M.Matrix]) -> 
 equalBackwardResults (firstBiases, firstWeights) (secondBiases, secondWeights) =
     equalLists firstBiases secondBiases && equalLists firstWeights secondWeights
   where
-    equalLists firstList secondList = and $ zipWith (M.equal 1) firstList secondList
+    equalLists firstList secondList = and $ zipWith (M.equal 1e-5) firstList secondList
+
+equalMatrix :: M.Matrix -> Either String M.Matrix -> Bool
+equalMatrix firstMatrix secondMatrix = DE.fromRight False $ M.equal 1e-5 firstMatrix <$> secondMatrix
 
 toColumnVector :: [Double] -> M.Matrix
 toColumnVector list = M.unsafeFromList (length list) 1 list
@@ -37,12 +40,21 @@ toColumnVector list = M.unsafeFromList (length list) 1 list
 
 testActivation :: TH.Spec
 testActivation = do
-    let columnVector = M.unsafeFromList 2 1 [6, -4]
+    let vector = M.unsafeFromList 5 1 [-0.1, 0.3, 0.2, -0.5, -0.7]
 
-    TH.describe "Test of activation functions:" $
-        TH.it "ReLu activation function" $ do
-            A.forward A.ReLu columnVector `TH.shouldBe` M.fromList 2 1 [6, 0]
-            A.backward A.ReLu columnVector `TH.shouldBe` M.fromList 2 2 [1, 0]
+    TH.describe "Test of activation functions:" $ do
+        TH.it "ReLu function" $ do
+            A.forward A.ReLu vector `TH.shouldBe` M.fromList 5 1 [0, 0.3, 0.2, 0, 0]
+            A.backward A.ReLu vector `TH.shouldBe` M.fromList 5 5 [0, 1, 1, 0, 0]
+        TH.it "SoftMax function" $ do
+            A.forward A.SoftMax vector `TH.shouldSatisfy` (equalMatrix $ M.unsafeFromList 5 1 [0.1975966248481474, 0.2947795251190231, 0.2667275443985631, 0.1324529786646971, 0.1084433269695693])
+            A.backward A.SoftMax vector `TH.shouldSatisfy` (equalMatrix $ M.unsafeFromList 5 5 [
+                0.1585521986967679, -0.0582474392378586, -0.0527044625271905, -0.0261722615352278, -0.021428035396491,
+                -0.0582474392378586, 0.2078845566896263, -0.0786258188739716, -0.0390444261513795, -0.0319668724264166,
+                -0.0527044625271905, -0.0786258188739716, 0.1955839614576756, -0.0353288577475099, -0.0289248223090037,
+                -0.0261722615352278, -0.0390444261513795, -0.0353288577475099, 0.1149091871075464, -0.0143636416734291,
+                -0.021428035396491, -0.0319668724264166, -0.0289248223090037, -0.0143636416734291, 0.0966833718053404
+                ])
 
 testMatrix :: TH.Spec
 testMatrix = do
@@ -61,8 +73,8 @@ testMatrix = do
         TH.it "Equality between matrices with tolerance" $ do
             firstFullRectangularMatrix `TH.shouldSatisfy` M.equal 0 firstFullRectangularMatrix
             firstFullRectangularMatrix `TH.shouldSatisfy` not . M.equal 0 (M.transpose firstFullRectangularMatrix)
-            firstFullRectangularMatrix `TH.shouldSatisfy` not . M.equal 0.1 (M.unsafeFromList 3 2 [1, 8, -5, 4 + 0.11, -4, 0, 2])
-            firstFullRectangularMatrix `TH.shouldSatisfy` M.equal 0.2 (M.unsafeFromList 3 2 [0.81, 8.15, -5.10, 3.92, -4.04, -0.13])
+            firstFullRectangularMatrix `TH.shouldSatisfy` not . M.equal 0.001 (M.unsafeFromList 3 2 [1, 8, -5, 4.01, -4, 0])
+            firstFullRectangularMatrix `TH.shouldSatisfy` M.equal 0.01 (M.unsafeFromList 3 2 [0.997, 8.0132, -5.05, 3.97, -4, 0])
 
         TH.it "Extraction of matrices" $ do
             M.take M.Columns 1 firstFullRectangularMatrix `TH.shouldBe` M.fromList 3 1 [1, -5, -4]
