@@ -25,7 +25,7 @@ backward loss outputMatrix@(M.ColumnVector outputSize outputVector) targetMatrix
         MSE -> M.fromVector 1 outputSize $ DVU.map ((/ fromIntegral outputSize) . (*2)) (DVU.zipWith (-) outputVector targetVector)
         NLLSoftMax -> do
             let targetNorm = M.sum targetMatrix
-            M.transpose <$> ((M.map (* targetNorm) <$> A.forward A.SoftMax outputMatrix) >>= M.addMatrices targetMatrix)
+            M.transpose <$> ((M.map (* targetNorm) <$> A.forward A.SoftMax outputMatrix) >>= M.addMatrices (M.map negate targetMatrix))
 backward _ _ _ = Left "Wrong matrix types to compute loss backward"
 
 forward :: Loss -> M.Matrix -> M.Matrix -> Either String Double
