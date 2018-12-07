@@ -39,8 +39,8 @@ backward Sigmoid (M.ColumnVector size vector) = M.fromVector size size $ DVU.map
 backward SoftMax matrix@M.ColumnVector{} = do
     normalizedMatrix <- forward SoftMax matrix
     fullMatrix <- M.multiplyMatrices normalizedMatrix $ M.transpose normalizedMatrix
-    return $ M.imap (\(row, column) value -> if row == column then (sqrt value) - value else negate value) fullMatrix
-backward TanH (M.ColumnVector size vector) = M.fromVector size size $ DVU.map (\x -> 1 - (tanh x) ** 2) vector
+    return $ M.imap (\(row, column) value -> if row == column then sqrt value - value else negate value) fullMatrix
+backward TanH (M.ColumnVector size vector) = M.fromVector size size $ DVU.map (\x -> 1 - tanh x ** 2) vector
 
 forward :: Activation -> M.Matrix -> Either String M.Matrix
 forward Identity matrix@M.ColumnVector{} = Right matrix
@@ -49,5 +49,5 @@ forward Sigmoid (M.ColumnVector size vector) = M.fromVector size 1 $ DVU.map sta
 forward SoftMax matrix@M.ColumnVector{} = do
     let maximum = M.maximum matrix
     let normalization = M.sum $ M.map (exp . (\value -> value - maximum)) matrix
-    Right $ M.map (\value -> (exp $ value - maximum) / normalization) matrix
+    Right $ M.map (\value -> exp (value - maximum) / normalization) matrix
 forward TanH (M.ColumnVector size vector) = M.fromVector size 1 $ DVU.map tanh vector

@@ -20,8 +20,8 @@ backward loss outputMatrix@(M.ColumnVector outputSize outputVector) targetMatrix
     | outputSize /= targetSize = Left "Mismatching dimensions between output and target"
     | otherwise = case loss of
         CrossEntropy -> if M.sum targetMatrix == 1
-            then M.transpose <$> (M.zipWith (*) targetMatrix $ M.map (negate . (1/)) outputMatrix)
-            else Left $ "Cross-Entropy loss requires a normalized target"
+            then M.transpose <$> M.zipWith (*) targetMatrix (M.map (negate . (1 /)) outputMatrix)
+            else Left "Cross-Entropy loss requires a normalized target"
         MSE -> M.fromVector 1 outputSize $ DVU.map ((/ fromIntegral outputSize) . (*2)) (DVU.zipWith (-) outputVector targetVector)
         NLLSoftMax -> do
             let targetNorm = M.sum targetMatrix

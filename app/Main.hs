@@ -28,7 +28,7 @@ main = do
             network <- N.random [784, 300, 10] [A.Sigmoid, A.Identity] generator
             N.train (O.SGD 1 0.01) L.NLLSoftMax network dataset
 
-    either SE.die ((writeFile (lossFileName ++ ".txt")) . show . snd) trainingResult
+    either SE.die (writeFile (lossFileName ++ ".txt") . show . snd) trainingResult
 
     GRCBC.toFile GRCE.def (lossFileName ++ ".png") $ do
         let losses = DE.fromRight [] $ snd <$> trainingResult

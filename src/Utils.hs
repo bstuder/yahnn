@@ -15,7 +15,4 @@ dotProduct :: DVU.Vector Double -> DVU.Vector Double -> Double
 dotProduct firstVector secondVector = DVU.sum $ DVU.zipWith (*) firstVector secondVector
 
 equalDouble :: Double -> Double -> Double -> Bool
-equalDouble precision firstDouble secondeDouble =
-    if firstDouble == secondeDouble
-    then True
-    else abs (firstDouble - secondeDouble) / max (abs firstDouble) (abs secondeDouble) <= precision
+equalDouble precision firstDouble secondeDouble = firstDouble == secondeDouble || abs (firstDouble - secondeDouble) / max (abs firstDouble) (abs secondeDouble) <= precision

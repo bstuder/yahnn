@@ -34,9 +34,9 @@ add (ConfusionMatrix firstFN firstFP firstTN firstTP) (ConfusionMatrix secondFN 
 
 f1 :: ConfusionMatrix -> Double
 f1 (ConfusionMatrix falseNegatives falsePositives trueNegatives truePositives) =
-    (sum $ compute <$> DL.zip4 falseNegatives falsePositives trueNegatives truePositives) / (fromIntegral $ length falseNegatives)
+    sum (compute <$> DL.zip4 falseNegatives falsePositives trueNegatives truePositives) / fromIntegral (length falseNegatives)
   where
-    compute (falseNegative, falsePositive, _, truePositive) = (fromIntegral $ 2 * truePositive) / (fromIntegral $ 2 * truePositive + falsePositive + falseNegative)
+    compute (falseNegative, falsePositive, _, truePositive) = fromIntegral (2 * truePositive) / fromIntegral (2 * truePositive + falsePositive + falseNegative)
 
 empty :: Int -> ConfusionMatrix
 empty numberOfClasses = ConfusionMatrix emptyList emptyList emptyList emptyList

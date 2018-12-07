@@ -114,8 +114,8 @@ evaluateClassification :: Network                               -- ^ Current Net
                           -> E.ConfusionMatrix                  -- ^ A confusion matrix
                           -> D.Dataset                          -- ^ Dataset to evaluate on
                           -> Either String E.ConfusionMatrix    -- ^ Result of the evaluation
-evaluateClassification network confusionMatrix (D.Dataset datapoints targets) = do
-    DV.foldl' (evaluateClassificationStep network) (Right $ confusionMatrix) $ DV.zip datapoints targets
+evaluateClassification network confusionMatrix (D.Dataset datapoints targets) =
+    DV.foldl' (evaluateClassificationStep network) (Right confusionMatrix) $ DV.zip datapoints targets
 
 forward :: M.Matrix                         -- ^ Input of the network
            -> Network                       -- ^ Current network

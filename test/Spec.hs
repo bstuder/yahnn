@@ -50,8 +50,8 @@ testActivation = do
             A.forward A.ReLu vector `TH.shouldBe` M.fromList 5 1 [0, 0.3, 0.2, 0, 0]
             A.backward A.ReLu vector `TH.shouldBe` M.fromList 5 5 [0, 1, 1, 0, 0]
         TH.it "SoftMax function" $ do
-            A.forward A.SoftMax vector `TH.shouldSatisfy` (equalMatrix $ M.unsafeFromList 5 1 [0.1975966248481474, 0.2947795251190231, 0.2667275443985631, 0.1324529786646971, 0.1084433269695693])
-            A.backward A.SoftMax vector `TH.shouldSatisfy` (equalMatrix $ M.unsafeFromList 5 5 [
+            A.forward A.SoftMax vector `TH.shouldSatisfy` equalMatrix (M.unsafeFromList 5 1 [0.1975966248481474, 0.2947795251190231, 0.2667275443985631, 0.1324529786646971, 0.1084433269695693])
+            A.backward A.SoftMax vector `TH.shouldSatisfy` equalMatrix (M.unsafeFromList 5 5 [
                 0.1585521986967679, -0.0582474392378586, -0.0527044625271905, -0.0261722615352278, -0.021428035396491,
                 -0.0582474392378586, 0.2078845566896263, -0.0786258188739716, -0.0390444261513795, -0.0319668724264166,
                 -0.0527044625271905, -0.0786258188739716, 0.1955839614576756, -0.0353288577475099, -0.0289248223090037,
@@ -66,15 +66,15 @@ testLosses = do
 
     TH.describe "Test of losses functions:" $ do
         TH.it "Cross-Entropy function" $ do
-            let transformedInput = (M.map abs input)
-            L.forward L.CrossEntropy transformedInput target `TH.shouldSatisfy` (equalDouble 1.6094379124341003)
-            L.backward L.CrossEntropy transformedInput target `TH.shouldSatisfy` (equalMatrix $ M.unsafeFromList 1 5 [0, 0, -5, 0, 0])
+            let transformedInput = M.map abs input
+            L.forward L.CrossEntropy transformedInput target `TH.shouldSatisfy` equalDouble 1.6094379124341003
+            L.backward L.CrossEntropy transformedInput target `TH.shouldSatisfy` equalMatrix (M.unsafeFromList 1 5 [0, 0, -5, 0, 0])
         TH.it "Mean Squared Error function" $ do
-            L.forward L.MSE input target `TH.shouldSatisfy` (equalDouble 0.296)
-            L.backward L.MSE input target `TH.shouldSatisfy` (equalMatrix $ M.unsafeFromList 1 5 [-0.04, 0.12, -0.32, -0.2, -0.28])
+            L.forward L.MSE input target `TH.shouldSatisfy` equalDouble 0.296
+            L.backward L.MSE input target `TH.shouldSatisfy` equalMatrix (M.unsafeFromList 1 5 [-0.04, 0.12, -0.32, -0.2, -0.28])
         TH.it "Negative Log Likelihood with SoftMax function" $ do
-            L.forward L.NLLSoftMax input target `TH.shouldSatisfy` (equalDouble 1.3215275745422457)
-            L.backward L.NLLSoftMax input target `TH.shouldSatisfy` (equalMatrix $ M.unsafeFromList 1 5 [0.1975966248481474, 0.2947795251190231, -0.733272455601437, 0.1324529786646971, 0.1084433269695693])
+            L.forward L.NLLSoftMax input target `TH.shouldSatisfy` equalDouble 1.3215275745422457
+            L.backward L.NLLSoftMax input target `TH.shouldSatisfy` equalMatrix (M.unsafeFromList 1 5 [0.1975966248481474, 0.2947795251190231, -0.733272455601437, 0.1324529786646971, 0.1084433269695693])
 
 testMatrix :: TH.Spec
 testMatrix = do
