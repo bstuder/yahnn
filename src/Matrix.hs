@@ -11,6 +11,7 @@ module Matrix
 
     addMatrices,
     concatenate,
+    convolve,
     empty,
     equal,
     fromList,
@@ -55,6 +56,7 @@ data Matrix = Matrix {
 } deriving (Eq, GG.Generic, Show)
 
 data Axis = Columns | Rows deriving (Eq, Show)
+
 
 {----- PATTERNS -----}
 
@@ -109,6 +111,22 @@ concatenate Rows firstMatrix@(Matrix firstRows firstColumns firstVector) secondM
     | firstColumns /= secondColumns = Left $ "Cannot append rows of matrix " ++ showSize secondMatrix ++ " to matrix " ++ showSize firstMatrix
     | otherwise = Right $ Matrix (firstRows + secondRows) firstColumns $ firstVector DVU.++ secondVector
 
+convolve :: Matrix -> Matrix -> Matrix
+convolve matrix@(Matrix matrixRows matrixColumns _) kernel@(Matrix kernelRows kernelColumns _) =
+    generate matrixRows matrixColumns computeConvolutedValue
+  where
+    kernelRowsWindow = quot kernelRows 2
+    kernelColumnsWindow = quot kernelColumns 2
+    computeConvolutedValue (row, column) = P.sum [
+        if row - kernelRowsWindow + i < 0 ||
+           row - kernelRowsWindow + i >= matrixRows ||
+           column - kernelColumnsWindow + j < 0 ||
+           column - kernelColumnsWindow + j >= matrixColumns
+            then 0
+            else matrix ! (row - kernelRowsWindow + i, column - kernelColumnsWindow + j) * kernel ! (i, j)
+        | i <- [0 .. kernelRows - 1], j <- [0 .. kernelColumns - 1]
+        ]
+
 empty :: Matrix
 empty = Matrix 0 0 mempty
 
@@ -162,7 +180,7 @@ multiplyMatrices firstMatrix@(DiagonalMatrix firstSize firstVector) secondMatrix
     | otherwise = Right $ DiagonalMatrix firstSize $ DVU.zipWith (*) firstVector secondVector
 multiplyMatrices firstMatrix@(FullMatrix firstRows firstColumns _) secondMatrix@(FullMatrix secondRows secondColumns _)
     | firstColumns /= secondRows = Left $ "Cannot multiply matrix " ++ showSize firstMatrix ++ " with matrix " ++ showSize secondMatrix
-    | otherwise = Right $ generate firstRows secondColumns (\(i, j) -> P.sum [ firstMatrix ! (i,k) * secondMatrix ! (k,j) | k <- [0..firstColumns-1]])
+    | otherwise = Right $ generate firstRows secondColumns (\(row, column) -> P.sum [ firstMatrix ! (row, k) * secondMatrix ! (k, column) | k <- [0 .. firstColumns - 1]])
 
 singleton :: Double -> Matrix
 singleton value = unsafeFromList 1 1 [value]

@@ -88,6 +88,7 @@ testMatrix = do
     let secondFullRectangularMatrix = M.unsafeFromList 2 3 [0, -2, 3, 6, 1, -8]
     let firstDiagonalMatrix = M.unsafeFromList 2 2 [4, -1]
     let secondDiagonalMatrix = M.unsafeFromList 2 2 [5, 2]
+    let largeMatrix = M.unsafeFromList 4 3 [1, 3, -1, 4, 0, 0, -7, -5, 4, -4, 3, 1]
 
     TH.describe "Test of linear algebra functions:" $ do
         TH.it "Equality between matrices with tolerance" $ do
@@ -145,6 +146,10 @@ testMatrix = do
             M.multiplyMatrices firstFullSquareMatrix secondColumnVector `TH.shouldBe` M.fromList 2 1 [-4, -8]
             M.multiplyMatrices firstFullSquareMatrix secondRowVector `TH.shouldSatisfy` DE.isLeft
             M.multiplyMatrices firstColumnVector secondDiagonalMatrix `TH.shouldSatisfy` DE.isLeft
+
+        TH.it "Convolution of a matrix with a kernel" $ do
+            M.convolve largeMatrix (M.unsafeFromList 1 2 [1, -3]) `TH.shouldBe` M.unsafeFromList 4 3 [-3, -8, 6, -12, 4, 0, 21, 8, -17, 12, -13, 0]
+            M.convolve largeMatrix (M.unsafeFromList 2 3 [1, -3, 2, -1, 0, -2]) `TH.shouldBe` M.unsafeFromList 4 3 [-6 , 1, -3, 3, -14, 6, -2, 3, 5, 5, 18, -20]
 
 testNetwork :: TH.Spec
 testNetwork = do
