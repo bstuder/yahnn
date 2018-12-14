@@ -24,6 +24,7 @@ module Matrix
     minimum,
     multiplyMatrices,
     normalize,
+    reshape,
     singleton,
     showSize,
     Matrix.sum,
@@ -182,6 +183,14 @@ multiplyMatrices firstMatrix@(FullMatrix firstRows firstColumns _) secondMatrix@
     | firstColumns /= secondRows = Left $ "Cannot multiply matrix " ++ showSize firstMatrix ++ " with matrix " ++ showSize secondMatrix
     | otherwise = Right $ generate firstRows secondColumns (\(row, column) -> P.sum [ firstMatrix ! (row, k) * secondMatrix ! (k, column) | k <- [0 .. firstColumns - 1]])
 
+reshape :: Int -> Int -> Matrix -> Either String Matrix
+reshape newRows newColumns matrix@(DiagonalMatrix size _)
+    | newRows == size && newColumns == size = Right matrix
+    | otherwise = Left "Unable to reshape diagonal matrix"
+reshape newRows newColumns matrix@(Matrix rows columns vector)
+    | newRows * newColumns /= rows * columns = Left $ "Unable to reshape " ++ showSize matrix ++ " matrix to [" ++ show newRows ++ " x " ++ show newColumns ++ "]"
+    | otherwise = Right $ Matrix newRows newColumns vector
+
 singleton :: Double -> Matrix
 singleton value = unsafeFromList 1 1 [value]
 
@@ -192,7 +201,7 @@ sum :: Matrix -> Double
 sum (Matrix _ _ vector) = DVU.sum vector
 
 take :: Axis -> Int -> Matrix -> Either String Matrix
-take axis value diagonal@DiagonalMatrix{} = toFull diagonal >>= Matrix.take axis value
+take axis value matrix@DiagonalMatrix{} = toFull matrix >>= Matrix.take axis value
 take Columns value matrix@(Matrix rows columns _)
     | value >= columns = Right empty
     | otherwise = Right $ Matrix rows value $ DVU.concat (DVU.take value <$> toRows matrix)
