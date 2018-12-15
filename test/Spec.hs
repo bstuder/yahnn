@@ -1,7 +1,7 @@
 import qualified Activation as A
 import qualified Data.Either as DE (fromRight, isLeft, isRight)
 import qualified Data.Vector as DV (empty, fromList)
-import qualified Data.Vector.Unboxed as DVU (Vector, empty, fromList)
+import qualified Data.Vector.Unboxed as DVU (empty, fromList)
 import qualified Loss as L
 import qualified Matrix as M
 import qualified Network as N
@@ -20,35 +20,6 @@ instance TQ.Arbitrary M.Matrix where
         list    <- TQ.vector (rows * columns)
         return $ M.unsafeFromList rows columns list
 
-{----- DECLARATIONS -----}
-
-vector                      = DVU.fromList [-2, 3, 6, 1, -8, -9]
-
-firstRowVector              = M.unsafeFromList 1 2 [4, -6]
-secondRowVector             = M.unsafeFromList 1 2 [7, 0]
-firstColumnVector           = M.unsafeFromList 2 1 [6, -4]
-secondColumnVector          = M.unsafeFromList 2 1 [-1, -2]
-firstFullSquareMatrix       = M.unsafeFromList 2 2 [-2, 3, 6, 1]
-secondFullSquareMatrix      = M.unsafeFromList 2 2 [-1, -1, 5, 3]
-firstFullRectangularMatrix  = M.unsafeFromList 3 2 [1, 8, -5, 4, -4, 0]
-secondFullRectangularMatrix = M.unsafeFromList 2 3 [0, -2, 3, 6, 1, -8]
-firstDiagonalMatrix         = M.unsafeFromList 2 2 [4, -1]
-secondDiagonalMatrix        = M.unsafeFromList 2 2 [5, 2]
-
-network = N.unsafeFromLists [A.ReLu, A.ReLu, A.ReLu, A.ReLu] [
-        M.unsafeFromList 3 1 [3, -2, 1],
-        M.unsafeFromList 2 1 [6, -1],
-        M.unsafeFromList 3 1 [-1, 2, 7],
-        M.unsafeFromList 6 1 [4, 3, -7, 0, 1, -1]
-    ] [
-        M.unsafeFromList 3 6 [2, -1, 3, 7, -5, 1, 5, -1, 2, 1, 7, -3, 6, 4, -8, 1, -2, -4],
-        M.unsafeFromList 2 3 [3, -1, 2, 2, -5, 1],
-        M.unsafeFromList 3 2 [1, 1, -4, 8, 3, 2],
-        M.unsafeFromList 6 3 [-7, 3, 2, -1, 4, -6, 6, -2, -1, 5, 2, 4, -1, 8, 3, 2, -4, 2]
-    ]
-
-generator = SR.mkStdGen 12345
-
 
 {----- UTILITY METHODS -----}
 
@@ -56,7 +27,13 @@ equalBackwardResults :: ([M.Matrix], [M.Matrix]) -> ([M.Matrix], [M.Matrix]) -> 
 equalBackwardResults (firstBiases, firstWeights) (secondBiases, secondWeights) =
     equalLists firstBiases secondBiases && equalLists firstWeights secondWeights
   where
-    equalLists firstList secondList = and $ zipWith (M.equal 1) firstList secondList
+    equalLists firstList secondList = and $ zipWith (M.equal 1e-5) firstList secondList
+
+equalDouble :: Double -> Either String Double -> Bool
+equalDouble firstValue secondValue = DE.fromRight False $ U.equalDouble 1e-5 firstValue <$> secondValue
+
+equalMatrix :: M.Matrix -> Either String M.Matrix -> Bool
+equalMatrix firstMatrix secondMatrix = DE.fromRight False $ M.equal 1e-5 firstMatrix <$> secondMatrix
 
 toColumnVector :: [Double] -> M.Matrix
 toColumnVector list = M.unsafeFromList (length list) 1 list
@@ -65,20 +42,60 @@ toColumnVector list = M.unsafeFromList (length list) 1 list
 {----- TEST METHODS -----}
 
 testActivation :: TH.Spec
-testActivation =
-    TH.describe "Test of activation functions:" $
-        TH.it "ReLu activation function" $ do
-            A.forward A.ReLu firstColumnVector `TH.shouldBe` M.fromList 2 1 [6, 0]
-            A.backward A.ReLu firstColumnVector `TH.shouldBe` M.fromList 2 2 [1, 0]
+testActivation = do
+    let vector = M.unsafeFromList 5 1 [-0.1, 0.3, 0.2, -0.5, -0.7]
+
+    TH.describe "Test of activation functions:" $ do
+        TH.it "ReLu function" $ do
+            A.forward A.ReLu vector `TH.shouldBe` M.fromList 5 1 [0, 0.3, 0.2, 0, 0]
+            A.backward A.ReLu vector `TH.shouldBe` M.fromList 5 5 [0, 1, 1, 0, 0]
+        TH.it "SoftMax function" $ do
+            A.forward A.SoftMax vector `TH.shouldSatisfy` equalMatrix (M.unsafeFromList 5 1 [0.1975966248481474, 0.2947795251190231, 0.2667275443985631, 0.1324529786646971, 0.1084433269695693])
+            A.backward A.SoftMax vector `TH.shouldSatisfy` equalMatrix (M.unsafeFromList 5 5 [
+                0.1585521986967679, -0.0582474392378586, -0.0527044625271905, -0.0261722615352278, -0.021428035396491,
+                -0.0582474392378586, 0.2078845566896263, -0.0786258188739716, -0.0390444261513795, -0.0319668724264166,
+                -0.0527044625271905, -0.0786258188739716, 0.1955839614576756, -0.0353288577475099, -0.0289248223090037,
+                -0.0261722615352278, -0.0390444261513795, -0.0353288577475099, 0.1149091871075464, -0.0143636416734291,
+                -0.021428035396491, -0.0319668724264166, -0.0289248223090037, -0.0143636416734291, 0.0966833718053404
+                ])
+
+testLosses :: TH.Spec
+testLosses = do
+    let input = M.unsafeFromList 5 1 [-0.1, 0.3, 0.2, -0.5, -0.7]
+    let target = M.unsafeFromList 5 1 [0, 0, 1, 0, 0]
+
+    TH.describe "Test of losses functions:" $ do
+        TH.it "Cross-Entropy function" $ do
+            let transformedInput = M.map abs input
+            L.forward L.CrossEntropy transformedInput target `TH.shouldSatisfy` equalDouble 1.6094379124341003
+            L.backward L.CrossEntropy transformedInput target `TH.shouldSatisfy` equalMatrix (M.unsafeFromList 1 5 [0, 0, -5, 0, 0])
+        TH.it "Mean Squared Error function" $ do
+            L.forward L.MSE input target `TH.shouldSatisfy` equalDouble 0.296
+            L.backward L.MSE input target `TH.shouldSatisfy` equalMatrix (M.unsafeFromList 1 5 [-0.04, 0.12, -0.32, -0.2, -0.28])
+        TH.it "Negative Log Likelihood with SoftMax function" $ do
+            L.forward L.NLLSoftMax input target `TH.shouldSatisfy` equalDouble 1.3215275745422457
+            L.backward L.NLLSoftMax input target `TH.shouldSatisfy` equalMatrix (M.unsafeFromList 1 5 [0.1975966248481474, 0.2947795251190231, -0.733272455601437, 0.1324529786646971, 0.1084433269695693])
 
 testMatrix :: TH.Spec
-testMatrix =
+testMatrix = do
+    let firstRowVector = M.unsafeFromList 1 2 [4, -6]
+    let secondRowVector = M.unsafeFromList 1 2 [7, 0]
+    let firstColumnVector = M.unsafeFromList 2 1 [6, -4]
+    let secondColumnVector = M.unsafeFromList 2 1 [-1, -2]
+    let firstFullSquareMatrix = M.unsafeFromList 2 2 [-2, 3, 6, 1]
+    let secondFullSquareMatrix = M.unsafeFromList 2 2 [-1, -1, 5, 3]
+    let firstFullRectangularMatrix = M.unsafeFromList 3 2 [1, 8, -5, 4, -4, 0]
+    let secondFullRectangularMatrix = M.unsafeFromList 2 3 [0, -2, 3, 6, 1, -8]
+    let firstDiagonalMatrix = M.unsafeFromList 2 2 [4, -1]
+    let secondDiagonalMatrix = M.unsafeFromList 2 2 [5, 2]
+    let largeMatrix = M.unsafeFromList 4 3 [1, 3, -1, 4, 0, 0, -7, -5, 4, -4, 3, 1]
+
     TH.describe "Test of linear algebra functions:" $ do
         TH.it "Equality between matrices with tolerance" $ do
             firstFullRectangularMatrix `TH.shouldSatisfy` M.equal 0 firstFullRectangularMatrix
             firstFullRectangularMatrix `TH.shouldSatisfy` not . M.equal 0 (M.transpose firstFullRectangularMatrix)
-            firstFullRectangularMatrix `TH.shouldSatisfy` not . M.equal 0.1 (M.unsafeFromList 3 2 [1, 8, -5, 4 + 0.11, -4, 0, 2])
-            firstFullRectangularMatrix `TH.shouldSatisfy` M.equal 0.2 (M.unsafeFromList 3 2 [0.81, 8.15, -5.10, 3.92, -4.04, -0.13])
+            firstFullRectangularMatrix `TH.shouldSatisfy` not . M.equal 0.001 (M.unsafeFromList 3 2 [1, 8, -5, 4.01, -4, 0])
+            firstFullRectangularMatrix `TH.shouldSatisfy` M.equal 0.01 (M.unsafeFromList 3 2 [0.997, 8.0132, -5.05, 3.97, -4, 0])
 
         TH.it "Extraction of matrices" $ do
             M.take M.Columns 1 firstFullRectangularMatrix `TH.shouldBe` M.fromList 3 1 [1, -5, -4]
@@ -130,8 +147,26 @@ testMatrix =
             M.multiplyMatrices firstFullSquareMatrix secondRowVector `TH.shouldSatisfy` DE.isLeft
             M.multiplyMatrices firstColumnVector secondDiagonalMatrix `TH.shouldSatisfy` DE.isLeft
 
+        TH.it "Convolution of a matrix with a kernel" $ do
+            M.convolve largeMatrix (M.unsafeFromList 1 2 [1, -3]) `TH.shouldBe` M.unsafeFromList 4 3 [-3, -8, 6, -12, 4, 0, 21, 8, -17, 12, -13, 0]
+            M.convolve largeMatrix (M.unsafeFromList 2 3 [1, -3, 2, -1, 0, -2]) `TH.shouldBe` M.unsafeFromList 4 3 [-6 , 1, -3, 3, -14, 6, -2, 3, 5, 5, 18, -20]
+
 testNetwork :: TH.Spec
-testNetwork =
+testNetwork = do
+    let generator = SR.mkStdGen 12345
+    let datapoint = M.unsafeFromList 6 1 [-2, 3, 6, 1, -8, -9]
+    let network = N.unsafeFromLists [A.ReLu, A.ReLu, A.ReLu, A.ReLu] [
+            M.unsafeFromList 3 1 [3, -2, 1],
+            M.unsafeFromList 2 1 [6, -1],
+            M.unsafeFromList 3 1 [-1, 2, 7],
+            M.unsafeFromList 6 1 [4, 3, -7, 0, 1, -1]
+            ] [
+            M.unsafeFromList 3 6 [2, -1, 3, 7, -5, 1, 5, -1, 2, 1, 7, -3, 6, 4, -8, 1, -2, -4],
+            M.unsafeFromList 2 3 [3, -1, 2, 2, -5, 1],
+            M.unsafeFromList 3 2 [1, 1, -4, 8, 3, 2],
+            M.unsafeFromList 6 3 [-7, 3, 2, -1, 4, -6, 6, -2, -1, 5, 2, 4, -1, 8, 3, 2, -4, 2]
+            ]
+
     TH.describe "Test of network functions:" $ do
         TH.it "Generation of a random network" $ do
             N.random [3, 2, 1] [A.ReLu, A.TanH] generator `TH.shouldBe` N.fromLists [A.ReLu, A.TanH] [
@@ -143,7 +178,6 @@ testNetwork =
                 ]
             N.random [3, 2] [A.ReLu, A.TanH] generator `TH.shouldSatisfy` DE.isLeft
 
-        let datapoint = M.unsafeFromList 6 1 [-2, 3, 6, 1, -8, -9]
         let forwardResult = N.forward datapoint network
 
         TH.it "Forward of an input" $
@@ -168,7 +202,9 @@ testNetwork =
             (forwardResult >>= N.backward L.MSE network datapoint) `TH.shouldSatisfy` (\backwardResult -> DE.fromRight False $ equalBackwardResults backwardExpected <$> backwardResult)
 
 testUtils :: TH.Spec
-testUtils =
+testUtils = do
+    let vector = DVU.fromList [-2, 3, 6, 1, -8, -9]
+
     TH.describe "Test of utility functions:" $
         TH.it "Chunk of a vector" $ do
             U.chunksOf 5 DVU.empty `TH.shouldBe` DV.empty
@@ -183,4 +219,5 @@ main = TH.hspec $ do
     testUtils
     testMatrix
     testActivation
+    testLosses
     testNetwork

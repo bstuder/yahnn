@@ -11,35 +11,41 @@ module Matrix
 
     addMatrices,
     concatenate,
+    convolve,
     empty,
     equal,
     fromList,
     fromVector,
     generate,
+    imap,
     init,
     map,
     maximum,
     minimum,
     multiplyMatrices,
     normalize,
+    reshape,
     singleton,
     showSize,
+    Matrix.sum,
     Matrix.take,
+    toDiagonal,
     toRows,
     toColumns,
     transpose,
-    unsafeFromList
+    unsafeFromList,
+    zipWith
 ) where
 
-import qualified Data.List as DL (transpose)
+import qualified Data.List as DL (transpose, zipWith)
 import qualified Data.Maybe as DM (fromMaybe)
-import qualified Data.Serialize as DS (decodeLazy, encodeLazy, Serialize)
-import qualified Data.Vector as DV (Vector, toList)
-import qualified Data.Vector.Unboxed as DVU ((++), (!), and, backpermute, concat, empty, fromList, generate, length, map, maximum, minimum, take, toList, Vector, zipWith)
-import qualified Data.Vector.Serialize as DVS (genericGetVector, genericPutVector)
+import qualified Data.Serialize as DS (Serialize)
+import qualified Data.Vector as DV (toList)
+import qualified Data.Vector.Unboxed as DVU ((++), (!), and, backpermute, concat, fromList, generate, imap, length, map, maximum, minimum, sum, take, toList, Vector, zipWith)
+import qualified Data.Vector.Serialize ()
 import qualified GHC.Generics as GG (Generic)
-import Prelude as P hiding (init, map, maximum, minimum)
-import qualified Utils as U (chunksOf, dotProduct)
+import Prelude as P hiding (init, map, maximum, minimum, zipWith)
+import qualified Utils as U (chunksOf, equalDouble)
 
 
 {----- TYPES -----}
@@ -51,6 +57,7 @@ data Matrix = Matrix {
 } deriving (Eq, GG.Generic, Show)
 
 data Axis = Columns | Rows deriving (Eq, Show)
+
 
 {----- PATTERNS -----}
 
@@ -86,7 +93,7 @@ instance DS.Serialize Matrix
 infixr 8 !
 
 (!) :: Matrix -> (Int, Int) -> Double
-(!) (Matrix nrow ncol v) (row, col) = v DVU.! (row * ncol  + col)
+(!) (Matrix _ columns vector) (row, column) = vector DVU.! (row * columns  + column)
 
 addMatrices ::  Matrix -> Matrix -> Either String Matrix
 addMatrices full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= addMatrices full
@@ -98,12 +105,28 @@ addMatrices firstMatrix@(Matrix firstRows firstColumns firstVector) secondMatrix
 concatenate :: Axis -> Matrix -> Matrix -> Either String Matrix
 concatenate axis full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= concatenate axis full
 concatenate axis diagonal@DiagonalMatrix{} full@FullMatrix{} = toFull diagonal >>= \matrix -> concatenate axis matrix full
-concatenate Columns firstMatrix@(Matrix firstRows firstColumns firstVector) secondMatrix@(Matrix secondRows secondColumns secondVector)
+concatenate Columns firstMatrix@(Matrix firstRows firstColumns _) secondMatrix@(Matrix secondRows secondColumns _)
     | firstRows /= secondRows = Left $ "Cannot append columns of matrix " ++ showSize secondMatrix ++ " to matrix " ++ showSize firstMatrix
-    | otherwise = Right $ Matrix firstRows (firstColumns + secondColumns) $ DVU.concat $ zipWith (DVU.++) (toRows firstMatrix) (toRows secondMatrix)
+    | otherwise = Right $ Matrix firstRows (firstColumns + secondColumns) $ DVU.concat $ DL.zipWith (DVU.++) (toRows firstMatrix) (toRows secondMatrix)
 concatenate Rows firstMatrix@(Matrix firstRows firstColumns firstVector) secondMatrix@(Matrix secondRows secondColumns secondVector)
     | firstColumns /= secondColumns = Left $ "Cannot append rows of matrix " ++ showSize secondMatrix ++ " to matrix " ++ showSize firstMatrix
     | otherwise = Right $ Matrix (firstRows + secondRows) firstColumns $ firstVector DVU.++ secondVector
+
+convolve :: Matrix -> Matrix -> Matrix
+convolve matrix@(Matrix matrixRows matrixColumns _) kernel@(Matrix kernelRows kernelColumns _) =
+    generate matrixRows matrixColumns computeConvolutedValue
+  where
+    kernelRowsWindow = quot kernelRows 2
+    kernelColumnsWindow = quot kernelColumns 2
+    computeConvolutedValue (row, column) = P.sum [
+        if row - kernelRowsWindow + i < 0 ||
+           row - kernelRowsWindow + i >= matrixRows ||
+           column - kernelColumnsWindow + j < 0 ||
+           column - kernelColumnsWindow + j >= matrixColumns
+            then 0
+            else matrix ! (row - kernelRowsWindow + i, column - kernelColumnsWindow + j) * kernel ! (i, j)
+        | i <- [0 .. kernelRows - 1], j <- [0 .. kernelColumns - 1]
+        ]
 
 empty :: Matrix
 empty = Matrix 0 0 mempty
@@ -111,7 +134,7 @@ empty = Matrix 0 0 mempty
 equal ::  Double -> Matrix -> Matrix -> Bool
 equal precision (Matrix firstRows firstColumns firstVector) (Matrix secondRows secondColumns secondVector)
     | (firstRows, firstColumns) /= (secondRows, secondColumns) = False
-    | otherwise = DVU.and $ DVU.zipWith (\x y -> abs (x - y) <= precision) firstVector secondVector
+    | otherwise = DVU.and $ DVU.zipWith (U.equalDouble precision) firstVector secondVector
 
 fromList :: Int -> Int -> [Double] -> Either String Matrix
 fromList rows columns list
@@ -125,9 +148,13 @@ generate :: Int -> Int -> ((Int, Int) -> Double) -> Matrix
 generate rows columns function =
     Matrix rows columns $ DVU.generate (rows * columns) (\indice -> function (indice `div` columns, indice `mod` columns))
 
+imap :: ((Int, Int) -> Double -> Double) -> Matrix -> Matrix
+imap function (Matrix rows columns vector) =
+    Matrix rows columns $ DVU.imap (\indice value -> function (indice `div` columns, indice `mod` columns) value) vector
+
 init :: Axis -> Matrix -> Either String Matrix
-init Columns matrix@(Matrix rows columns vector) = Matrix.take Columns (columns - 1) matrix
-init Rows matrix@(Matrix rows columns vector) = Matrix.take Rows (rows - 1) matrix
+init Columns matrix@(Matrix _ columns _) = Matrix.take Columns (columns - 1) matrix
+init Rows matrix@(Matrix rows _ _) = Matrix.take Rows (rows - 1) matrix
 
 map :: (Double -> Double) -> Matrix -> Matrix
 map function (Matrix rows columns vector) = Matrix rows columns $ DVU.map function vector
@@ -146,7 +173,7 @@ normalize maybeUpperBound maybeLowerBound matrix = map transform matrix
         upperBound = DM.fromMaybe (maximum matrix) maybeUpperBound
         lowerBound = DM.fromMaybe (minimum matrix) maybeLowerBound
 
-multiplyMatrices ::  Matrix -> Matrix -> Either String Matrix
+multiplyMatrices :: Matrix -> Matrix -> Either String Matrix
 multiplyMatrices full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= multiplyMatrices full
 multiplyMatrices diagonal@DiagonalMatrix{} full@FullMatrix{} = toFull diagonal >>= flip multiplyMatrices full
 multiplyMatrices firstMatrix@(DiagonalMatrix firstSize firstVector) secondMatrix@(DiagonalMatrix secondSize secondVector)
@@ -154,7 +181,15 @@ multiplyMatrices firstMatrix@(DiagonalMatrix firstSize firstVector) secondMatrix
     | otherwise = Right $ DiagonalMatrix firstSize $ DVU.zipWith (*) firstVector secondVector
 multiplyMatrices firstMatrix@(FullMatrix firstRows firstColumns _) secondMatrix@(FullMatrix secondRows secondColumns _)
     | firstColumns /= secondRows = Left $ "Cannot multiply matrix " ++ showSize firstMatrix ++ " with matrix " ++ showSize secondMatrix
-    | otherwise = Right $ generate firstRows secondColumns (\(i, j) -> sum [ firstMatrix ! (i,k) * secondMatrix ! (k,j) | k <- [0..firstColumns-1]])
+    | otherwise = Right $ generate firstRows secondColumns (\(row, column) -> P.sum [ firstMatrix ! (row, k) * secondMatrix ! (k, column) | k <- [0 .. firstColumns - 1]])
+
+reshape :: Int -> Int -> Matrix -> Either String Matrix
+reshape newRows newColumns matrix@(DiagonalMatrix size _)
+    | newRows == size && newColumns == size = Right matrix
+    | otherwise = Left "Unable to reshape diagonal matrix"
+reshape newRows newColumns matrix@(Matrix rows columns vector)
+    | newRows * newColumns /= rows * columns = Left $ "Unable to reshape " ++ showSize matrix ++ " matrix to [" ++ show newRows ++ " x " ++ show newColumns ++ "]"
+    | otherwise = Right $ Matrix newRows newColumns vector
 
 singleton :: Double -> Matrix
 singleton value = unsafeFromList 1 1 [value]
@@ -162,20 +197,29 @@ singleton value = unsafeFromList 1 1 [value]
 showSize :: Matrix -> String
 showSize (Matrix rows columns _) = "[" <> show rows <> " x " <> show columns <> "]"
 
+sum :: Matrix -> Double
+sum (Matrix _ _ vector) = DVU.sum vector
+
 take :: Axis -> Int -> Matrix -> Either String Matrix
-take axis value diagonal@DiagonalMatrix{} = toFull diagonal >>= Matrix.take axis value
-take Columns value matrix@(Matrix rows columns vector)
+take axis value matrix@DiagonalMatrix{} = toFull matrix >>= Matrix.take axis value
+take Columns value matrix@(Matrix rows columns _)
     | value >= columns = Right empty
     | otherwise = Right $ Matrix rows value $ DVU.concat (DVU.take value <$> toRows matrix)
-take Rows value matrix@(Matrix rows columns vector)
+take Rows value (Matrix rows columns vector)
     | value >= rows = Right empty
     | otherwise = Right $ Matrix value columns $ DVU.take (value * columns) vector
+
+toDiagonal :: Matrix -> Either String Matrix
+toDiagonal matrix@DiagonalMatrix{} = Right matrix
+toDiagonal (ColumnVector size vector) = fromVector size size vector
+toDiagonal (RowVector size vector) = fromVector size size vector
+toDiagonal matrix@FullMatrix{} = Right $ imap (\(row, column) value -> if row == column then value else 0) matrix
 
 toFull :: Matrix -> Either String Matrix
 toFull (DiagonalMatrix size vector) = Right $ generate size size (\(row, column) -> if row == column then vector DVU.! row else 0)
 toFull ColumnVector{} = Left "Cannot transform a column vector into a matrix"
 toFull RowVector{} = Left "Cannot transform a row vector into a matrix"
-toFull matrix@Matrix{} = Right matrix
+toFull matrix@FullMatrix{} = Right matrix
 
 toRows :: Matrix -> [DVU.Vector Double]
 toRows (Matrix _ columns vector) = DV.toList $ U.chunksOf columns vector
@@ -194,3 +238,8 @@ transpose (FullMatrix rows columns vector) = Matrix columns rows transposedVecto
 
 unsafeFromList :: Int -> Int -> [Double] -> Matrix
 unsafeFromList rows columns list = Matrix rows columns $ DVU.fromList list
+
+zipWith :: (Double -> Double -> Double) -> Matrix -> Matrix -> Either String Matrix
+zipWith function firstMatrix@(Matrix firstRows firstColumns firstVector) secondMatrix@(Matrix secondRows secondColumns secondVector)
+    | (firstRows /= secondRows) || (firstColumns /= secondColumns) = Left $ "Cannot zip matrix " ++ showSize firstMatrix ++ " with matrix " ++ showSize secondMatrix
+    | otherwise = Right $ Matrix firstRows firstColumns $ DVU.zipWith function firstVector secondVector

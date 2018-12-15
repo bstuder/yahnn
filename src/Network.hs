@@ -1,4 +1,4 @@
-{-# LANGUAGE Strict #-}
+{-# LANGUAGE Strict, ViewPatterns #-}
 
 module Network
 (
@@ -6,6 +6,7 @@ module Network
     Network,
 
     backward,
+    evaluateClassification,
     forward,
     fromLists,
     random,
@@ -13,10 +14,11 @@ module Network
     unsafeFromLists
 ) where
 
-import qualified Activation as A (Activation(..), backward, forward)
-import qualified Data.List as DL (foldl', zip4)
-import qualified Data.Vector.Unboxed as DVU (Vector)
+import qualified Activation as A (Activation, backward, forward)
+import qualified Data.List as DL (zip4)
+import qualified Data.Vector as DV (foldl', zip)
 import qualified Dataset as D (Dataset(..))
+import qualified Evaluator as E (ConfusionMatrix, update)
 import qualified Loss as L (backward, forward, Loss)
 import qualified Matrix as M (addMatrices, empty, fromList, Matrix, multiplyMatrices, transpose)
 import qualified Optimizer as O (optimize, Optimizer)
@@ -53,17 +55,25 @@ backwardStep input activation weights output propagation = do
     nextBiasesGradient <- M.transpose <$> buffer
     return ((nextBiasesGradient, nextWeightsGradient), nextPropagation)
 
-forwardStep :: M.Matrix                                -- ^ Input of the network
-               -> Network                              -- ^ Current network
-               -> Either String [(M.Matrix, M.Matrix)] -- ^ Inputs and outputs of the current layer.
-forwardStep input (Network [] [] []) = Right []
+evaluateClassificationStep :: Network                               -- ^ Current network
+                              -> Either String E.ConfusionMatrix    -- ^ Result of the previous evaluation
+                              -> (M.Matrix, M.Matrix)           -- ^ Datapoint and target to train on
+                              -> Either String E.ConfusionMatrix    -- ^ Result of the evaluation
+evaluateClassificationStep network confusionMatrix (datapoint, target) = do
+    (ForwardResult _ layerOutputs) <- forward datapoint network
+    E.update (last layerOutputs) target <$> confusionMatrix
+
+forwardStep :: M.Matrix                                 -- ^ Input of the network
+               -> Network                               -- ^ Current network
+               -> Either String [(M.Matrix, M.Matrix)]  -- ^ Inputs and outputs of the current layer.
+forwardStep _ (Network [] [] []) = Right []
 forwardStep input (Network (activation:activations) (bias:biases) (weight:weights)) = do
     activationInput <- M.multiplyMatrices weight input >>= M.addMatrices bias
     activationOutput <- A.forward activation activationInput
     ((activationInput, activationOutput) :) <$> forwardStep activationOutput (Network activations biases weights)
 
 randomStep :: [Int] -> SR.StdGen -> Either String ([M.Matrix], [M.Matrix])
-randomStep [layer] _ = Right ([], [])
+randomStep (length -> 1) _ = Right ([], [])
 randomStep (firstLayer : secondLayer : nextLayers) generator = do
     let (firstGenerator, (secondGenerator, thirdGenerator)) = SR.split <$> SR.split generator
     biases <- M.fromList secondLayer 1 $ take secondLayer $ SR.randomRs (-1.0, 1.0) firstGenerator
@@ -93,16 +103,23 @@ backward :: L.Loss                                    -- ^ Loss function
             -> M.Matrix                               -- ^ Target vector
             -> ForwardResult                          -- ^ Forward pass result
             -> Either String ([M.Matrix], [M.Matrix]) -- ^ Typle of list of gradient of biases and weights
-backward loss (Network activations biases weights) target (ForwardResult layerInputs layerOutputs) = do
+backward loss (Network activations _ weights) target (ForwardResult layerInputs layerOutputs) = do
     let propagation = (,) (M.empty, M.empty) <$> L.backward loss (last layerOutputs) target
     backwardResults <- sequence $ init $ scanr computeBackwardStep propagation (DL.zip4 layerInputs activations weights (init layerOutputs))
     return $ unzip $ fst <$> backwardResults
   where
     computeBackwardStep (input, activation, weight, output) previous = previous >>= \(_, x) -> backwardStep input activation weight output x
 
-forward :: M.Matrix                       -- ^ Input of the network
-           -> Network                     -- ^ Current network
-           -> Either String ForwardResult -- ^ Result of the forward pass
+evaluateClassification :: Network                               -- ^ Current Network
+                          -> E.ConfusionMatrix                  -- ^ A confusion matrix
+                          -> D.Dataset                          -- ^ Dataset to evaluate on
+                          -> Either String E.ConfusionMatrix    -- ^ Result of the evaluation
+evaluateClassification network confusionMatrix (D.Dataset datapoints targets) =
+    DV.foldl' (evaluateClassificationStep network) (Right confusionMatrix) $ DV.zip datapoints targets
+
+forward :: M.Matrix                         -- ^ Input of the network
+           -> Network                       -- ^ Current network
+           -> Either String ForwardResult   -- ^ Result of the forward pass
 forward input network = do
     (inputs, outputs) <- unzip <$> forwardStep input network
     return ForwardResult { layerInputs = inputs, layerOutputs = input:outputs }
@@ -126,7 +143,7 @@ train :: O.Optimizer                          -- ^ Optimizer
          -> D.Dataset                         -- ^ Dataset to train on
          -> Either String (Network, [Double]) -- ^ Trained network and list of loss values
 train optimizer loss network (D.Dataset datapoints targets) =
-    DL.foldl' (trainStep optimizer loss) (Right (network, [])) $ zip datapoints targets
+    DV.foldl' (trainStep optimizer loss) (Right (network, [])) $ DV.zip datapoints targets
 
 unsafeFromLists :: [A.Activation] -> [M.Matrix] -> [M.Matrix] -> Network
 unsafeFromLists = Network
