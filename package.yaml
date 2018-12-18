@@ -21,6 +21,12 @@ description:         Please see the README on GitHub at <https://github.com/bstu
 
 dependencies:
 - base >= 4.7 && < 5
+- bytestring
+- vector
+- hmatrix
+- cereal
+- cereal-vector
+- random
 
 library:
   source-dirs: src
@@ -38,12 +44,6 @@ library:
   - -fwarn-unused-do-bind
   - -fwarn-wrong-do-bind
   - -fwarn-warnings-deprecations
-  dependencies:
-    - bytestring
-    - cereal
-    - cereal-vector
-    - random
-    - vector
 
 executables:
   yahnn-exe:
@@ -69,14 +69,9 @@ executables:
     - -threaded
     - -with-rtsopts=-N
     dependencies:
-    - bytestring
-    - cereal
-    - cereal-vector
     - Chart
     - Chart-cairo
-    - random
     - time
-    - vector
     - yahnn
 
 tests:
@@ -105,6 +100,4 @@ tests:
     dependencies:
     - hspec
     - QuickCheck
-    - random
-    - vector
     - yahnn
