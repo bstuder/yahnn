@@ -165,14 +165,6 @@ maximum (Matrix _ _ vector) = DVU.maximum vector
 minimum ::  Matrix -> Double
 minimum (Matrix _ _ vector) = DVU.minimum vector
 
-normalize ::  Maybe Double -> Maybe Double -> Matrix -> Matrix
-normalize maybeUpperBound maybeLowerBound matrix = map transform matrix
-  where transform  = if upperBound == lowerBound
-                       then const 0
-                       else \x -> (2 * x - upperBound - lowerBound) / (upperBound - lowerBound)
-        upperBound = DM.fromMaybe (maximum matrix) maybeUpperBound
-        lowerBound = DM.fromMaybe (minimum matrix) maybeLowerBound
-
 multiplyMatrices :: Matrix -> Matrix -> Either String Matrix
 multiplyMatrices full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= multiplyMatrices full
 multiplyMatrices diagonal@DiagonalMatrix{} full@FullMatrix{} = toFull diagonal >>= flip multiplyMatrices full
