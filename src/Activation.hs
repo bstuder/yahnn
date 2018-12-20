@@ -8,8 +8,9 @@ module Activation
     forward
 ) where
 
-import qualified Data.Vector.Unboxed as DVU (map)
-import qualified Matrix as M (pattern ColumnVector, fromList, fromVector, imap, map, Matrix, maximum, multiplyMatrices, sum, transpose)
+import qualified Matrix as M (pattern ColumnVector, fromList, fromHmat, imap, map, Matrix, maximum, multiplyMatrices, sum, transpose)
+import qualified Numeric.LinearAlgebra as NL
+import qualified Numeric.LinearAlgebra.Devel as NLD
 
 
 {----- TYPES -----}
@@ -34,20 +35,20 @@ stabilizedSigmoidDerivative value = stabilizedValue * (1 - stabilizedValue)
 
 backward :: Activation -> M.Matrix -> Either String M.Matrix
 backward Identity (M.ColumnVector size _) = M.fromList size size $ replicate size 1
-backward ReLu (M.ColumnVector size vector) = M.fromVector size size $ DVU.map (\x -> if x < 0 then 0 else 1) vector
-backward Sigmoid (M.ColumnVector size vector) = M.fromVector size size $ DVU.map stabilizedSigmoidDerivative vector
+backward ReLu (M.ColumnVector size hmat) = M.fromHmat $ NL.cmap (\x -> if x < 0 then 0 else 1) hmat
+backward Sigmoid (M.ColumnVector size hmat) = M.fromHmat $ NL.cmap stabilizedSigmoidDerivative hmat
 backward SoftMax matrix@M.ColumnVector{} = do
     normalizedMatrix <- forward SoftMax matrix
     fullMatrix <- M.multiplyMatrices normalizedMatrix $ M.transpose normalizedMatrix
     return $ M.imap (\(row, column) value -> if row == column then sqrt value - value else negate value) fullMatrix
-backward TanH (M.ColumnVector size vector) = M.fromVector size size $ DVU.map (\x -> 1 - tanh x ** 2) vector
+backward TanH (M.ColumnVector size hmat) = M.fromHmat $ NL.cmap (\x -> 1 - tanh x ** 2) hmat
 
 forward :: Activation -> M.Matrix -> Either String M.Matrix
 forward Identity matrix@M.ColumnVector{} = Right matrix
-forward ReLu (M.ColumnVector size vector) = M.fromVector size 1 $ DVU.map (\x -> if x < 0 then 0 else x) vector
-forward Sigmoid (M.ColumnVector size vector) = M.fromVector size 1 $ DVU.map stabilizedSigmoid vector
+forward ReLu (M.ColumnVector size hmat) = M.fromHmat $ NL.cmap (\x -> if x < 0 then 0 else x) hmat
+forward Sigmoid (M.ColumnVector size hmat) = M.fromHmat $ NL.cmap stabilizedSigmoid hmat
 forward SoftMax matrix@M.ColumnVector{} = do
     let maximum = M.maximum matrix
     let normalization = M.sum $ M.map (exp . (\value -> value - maximum)) matrix
     Right $ M.map (\value -> exp (value - maximum) / normalization) matrix
-forward TanH (M.ColumnVector size vector) = M.fromVector size 1 $ DVU.map tanh vector
+forward TanH (M.ColumnVector size hmat) = M.fromHmat $ NL.cmap tanh hmat

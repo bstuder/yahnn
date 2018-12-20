@@ -22,10 +22,10 @@ description:         Please see the README on GitHub at <https://github.com/bstu
 dependencies:
 - base >= 4.7 && < 5
 - bytestring
+- binary
+- storable-tuple
 - vector
 - hmatrix
-- cereal
-- cereal-vector
 - random
 
 library:

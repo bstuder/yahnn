@@ -14,9 +14,10 @@ module Network
     unsafeFromLists
 ) where
 
+import Data.Foldable (foldl')
+
 import qualified Activation as A (Activation, backward, forward)
 import qualified Data.List as DL (zip4)
-import qualified Data.Vector as DV (foldl', zip)
 import qualified Dataset as D (Dataset(..))
 import qualified Evaluator as E (ConfusionMatrix, update)
 import qualified Loss as L (backward, forward, Loss)
@@ -115,7 +116,7 @@ evaluateClassification :: Network                               -- ^ Current Net
                           -> D.Dataset                          -- ^ Dataset to evaluate on
                           -> Either String E.ConfusionMatrix    -- ^ Result of the evaluation
 evaluateClassification network confusionMatrix (D.Dataset datapoints targets) =
-    DV.foldl' (evaluateClassificationStep network) (Right confusionMatrix) $ DV.zip datapoints targets
+    foldl' (evaluateClassificationStep network) (Right confusionMatrix) $ zip datapoints targets
 
 forward :: M.Matrix                         -- ^ Input of the network
            -> Network                       -- ^ Current network
@@ -143,7 +144,7 @@ train :: O.Optimizer                          -- ^ Optimizer
          -> D.Dataset                         -- ^ Dataset to train on
          -> Either String (Network, [Double]) -- ^ Trained network and list of loss values
 train optimizer loss network (D.Dataset datapoints targets) =
-    DV.foldl' (trainStep optimizer loss) (Right (network, [])) $ DV.zip datapoints targets
+    foldl' (trainStep optimizer loss) (Right (network, [])) $ zip datapoints targets
 
 unsafeFromLists :: [A.Activation] -> [M.Matrix] -> [M.Matrix] -> Network
 unsafeFromLists = Network

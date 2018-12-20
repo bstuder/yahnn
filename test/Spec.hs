@@ -1,7 +1,5 @@
 import qualified Activation as A
 import qualified Data.Either as DE (fromRight, isLeft, isRight)
-import qualified Data.Vector as DV (empty, fromList)
-import qualified Data.Vector.Unboxed as DVU (empty, fromList)
 import qualified Loss as L
 import qualified Matrix as M
 import qualified Network as N
@@ -97,14 +95,6 @@ testMatrix = do
             firstFullRectangularMatrix `TH.shouldSatisfy` not . M.equal 0.001 (M.unsafeFromList 3 2 [1, 8, -5, 4.01, -4, 0])
             firstFullRectangularMatrix `TH.shouldSatisfy` M.equal 0.01 (M.unsafeFromList 3 2 [0.997, 8.0132, -5.05, 3.97, -4, 0])
 
-        TH.it "Extraction of matrices" $ do
-            M.take M.Columns 1 firstFullRectangularMatrix `TH.shouldBe` M.fromList 3 1 [1, -5, -4]
-            M.take M.Rows 2 firstFullRectangularMatrix `TH.shouldBe` M.fromList 2 2 [1, 8, -5, 4]
-            M.init M.Columns firstFullRectangularMatrix `TH.shouldBe` M.fromList 3 1 [1, -5, -4]
-            M.init M.Rows firstFullRectangularMatrix `TH.shouldBe` M.fromList 2 2 [1, 8, -5, 4]
-            M.take M.Columns 10 firstFullRectangularMatrix `TH.shouldBe` Right M.empty
-            M.take M.Rows 10 firstFullRectangularMatrix `TH.shouldBe` Right M.empty
-
         TH.it "Transpose of matrices" $ do
             M.transpose firstFullRectangularMatrix `TH.shouldBe` M.unsafeFromList 2 3 [1, -5, -4, 8, 4, 0]
             M.transpose firstDiagonalMatrix `TH.shouldBe` firstDiagonalMatrix
@@ -116,11 +106,13 @@ testMatrix = do
         TH.it "Multiplication of a matrix and its transposed" $
             TQ.property $ \m -> DE.isRight (m `M.multiplyMatrices` M.transpose (m :: M.Matrix))
 
-        TH.it "Concatenation of two matricee" $ do
-            M.concatenate M.Columns (M.transpose firstFullRectangularMatrix) secondFullRectangularMatrix `TH.shouldBe` M.fromList 2 6 [1, -5, -4, 0, -2, 3, 8, 4, 0, 6, 1, -8]
-            M.concatenate M.Rows firstFullRectangularMatrix (M.transpose secondFullRectangularMatrix) `TH.shouldBe` M.fromList 6 2 [1, 8, -5, 4, -4, 0, 0, 6, -2, 1, 3, -8]
-            M.concatenate M.Columns firstFullRectangularMatrix secondFullRectangularMatrix `TH.shouldSatisfy` DE.isLeft
-            M.concatenate M.Rows firstFullRectangularMatrix secondFullRectangularMatrix `TH.shouldSatisfy` DE.isLeft
+        {-
+         -TH.it "Concatenation of two matricee" $ do
+         -    M.concatenate M.Columns (M.transpose firstFullRectangularMatrix) secondFullRectangularMatrix `TH.shouldBe` M.fromList 2 6 [1, -5, -4, 0, -2, 3, 8, 4, 0, 6, 1, -8]
+         -    M.concatenate M.Rows firstFullRectangularMatrix (M.transpose secondFullRectangularMatrix) `TH.shouldBe` M.fromList 6 2 [1, 8, -5, 4, -4, 0, 0, 6, -2, 1, 3, -8]
+         -    M.concatenate M.Columns firstFullRectangularMatrix secondFullRectangularMatrix `TH.shouldSatisfy` DE.isLeft
+         -    M.concatenate M.Rows firstFullRectangularMatrix secondFullRectangularMatrix `TH.shouldSatisfy` DE.isLeft
+         -}
 
         TH.it "Addition of two matrices" $ do
             M.addMatrices firstFullSquareMatrix secondFullSquareMatrix `TH.shouldBe` M.fromList 2 2 [-3, 2, 11, 4]
@@ -147,9 +139,11 @@ testMatrix = do
             M.multiplyMatrices firstFullSquareMatrix secondRowVector `TH.shouldSatisfy` DE.isLeft
             M.multiplyMatrices firstColumnVector secondDiagonalMatrix `TH.shouldSatisfy` DE.isLeft
 
-        TH.it "Convolution of a matrix with a kernel" $ do
-            M.convolve largeMatrix (M.unsafeFromList 1 2 [1, -3]) `TH.shouldBe` M.unsafeFromList 4 3 [-3, -8, 6, -12, 4, 0, 21, 8, -17, 12, -13, 0]
-            M.convolve largeMatrix (M.unsafeFromList 2 3 [1, -3, 2, -1, 0, -2]) `TH.shouldBe` M.unsafeFromList 4 3 [-6 , 1, -3, 3, -14, 6, -2, 3, 5, 5, 18, -20]
+        {-
+         -TH.it "Convolution of a matrix with a kernel" $ do
+         -    M.convolve largeMatrix (M.unsafeFromList 1 2 [1, -3]) `TH.shouldBe` M.unsafeFromList 4 3 [-3, -8, 6, -12, 4, 0, 21, 8, -17, 12, -13, 0]
+         -    M.convolve largeMatrix (M.unsafeFromList 2 3 [1, -3, 2, -1, 0, -2]) `TH.shouldBe` M.unsafeFromList 4 3 [-6 , 1, -3, 3, -14, 6, -2, 3, 5, 5, 18, -20]
+         -}
 
 testNetwork :: TH.Spec
 testNetwork = do
@@ -201,22 +195,20 @@ testNetwork = do
 
             (forwardResult >>= N.backward L.MSE network datapoint) `TH.shouldSatisfy` (\backwardResult -> DE.fromRight False $ equalBackwardResults backwardExpected <$> backwardResult)
 
-testUtils :: TH.Spec
-testUtils = do
-    let vector = DVU.fromList [-2, 3, 6, 1, -8, -9]
-
-    TH.describe "Test of utility functions:" $
-        TH.it "Chunk of a vector" $ do
-            U.chunksOf 5 DVU.empty `TH.shouldBe` DV.empty
-            U.chunksOf 2 vector `TH.shouldBe` DV.fromList (fmap DVU.fromList [[-2, 3], [6, 1], [-8, -9]])
-            U.chunksOf 5 vector `TH.shouldBe` DV.fromList (fmap DVU.fromList [[-2, 3, 6, 1, -8]])
+{-
+ -testUtils :: TH.Spec
+ -testUtils = do
+ -    let vector = DVU.fromList [-2, 3, 6, 1, -8, -9]
+ -
+ -    TH.describe "Test of utility functions:" $
+ -}
 
 
 {----- MAIN -----}
 
 main :: IO ()
 main = TH.hspec $ do
-    testUtils
+    --testUtils
     testMatrix
     testActivation
     testLosses
