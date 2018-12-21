@@ -9,7 +9,6 @@ module Evaluator
 ) where
 
 import qualified Data.List as DL (zip4)
-import qualified Data.Vector.Unboxed as DVU (foldl, maximum, zip)
 import qualified Matrix as M (pattern ColumnVector, Matrix)
 
 import qualified Numeric.LinearAlgebra as NL

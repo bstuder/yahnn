@@ -24,7 +24,7 @@ main = do
     input <- DBL.readFile "data/MNIST/training_set"
 
     let trainingResult = do
-            dataset <- D.normalize D.Datapoints <$> D.fromByteString input
+            let dataset = D.normalize D.Datapoints $ D.fromByteString input
             network <- N.random [784, 300, 10] [A.Sigmoid, A.Identity] generator
             N.train (O.SGD 1 0.01) L.NLLSoftMax network dataset
 
@@ -46,7 +46,7 @@ main = do
 
     let evaluationResult = do
             (trainedNetwork, _) <- trainingResult
-            dataset <- D.normalize D.Datapoints <$> D.fromByteString input
+            let dataset = D.normalize D.Datapoints $ D.fromByteString input
             N.evaluateClassification trainedNetwork (E.empty 10) dataset
 
     either SE.die (print . show . E.f1) evaluationResult

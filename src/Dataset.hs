@@ -47,7 +47,7 @@ normalizeFlag inputFlag referenceFlag matrices =
 
 {----- EXPORTED METHODS -----}
 
-fromByteString :: DBL.ByteString -> Either String Dataset
+fromByteString :: DBL.ByteString -> Dataset
 fromByteString = DB.decode
 
 fromLists :: [M.Matrix] -> [M.Matrix] -> Either String Dataset
