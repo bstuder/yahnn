@@ -1,4 +1,4 @@
-{-# LANGUAGE Strict, DeriveGeneric, PatternSynonyms, ViewPatterns #-}
+{-# LANGUAGE DeriveGeneric, PatternSynonyms, ViewPatterns #-}
 
 module Matrix
 (
@@ -12,7 +12,6 @@ module Matrix
     empty,
     equal,
     fromList,
-    fromVector,
     fromHmat,
     imap,
     map,
@@ -28,13 +27,11 @@ module Matrix
     zipWith,
 ) where
 
-import qualified Data.Binary as DB (Binary)
-import qualified Data.List as DL (transpose, zipWith)
-import qualified Data.Maybe as DM (fromMaybe)
-import qualified Data.Vector as DV (toList)
-import qualified Data.Vector.Unboxed as DVU ((++), (!), and, backpermute, concat, fromList, generate, imap, length, map, maximum, minimum, sum, take, toList, Vector, zipWith, empty)
-import qualified GHC.Generics as GG (Generic)
 import Prelude as P hiding (init, map, maximum, minimum, zipWith)
+import qualified Data.Binary as DB (Binary)
+import qualified Data.Maybe as DM (fromMaybe)
+import qualified GHC.Generics as GG (Generic)
+import qualified Utils as U (equalDouble)
 import qualified Numeric.LinearAlgebra as NL
 import qualified Numeric.LinearAlgebra.Devel as NLD
 
@@ -45,7 +42,10 @@ data Matrix = Matrix {
     rows    :: Int,
     columns :: Int,
     hmat    :: NL.Matrix Double
-} deriving (Eq, GG.Generic, Show)
+} deriving (GG.Generic, Show)
+
+instance Eq Matrix where
+    m1 == m2 = hmat m1 == hmat m2
 
 data Axis = Columns | Rows deriving (Eq, Show)
 
@@ -64,51 +64,20 @@ instance DB.Binary Matrix
 {----- EXPORTED METHODS -----}
 
 addMatrices ::  Matrix -> Matrix -> Either String Matrix
-addMatrices leftMat rightMat = Right $ Matrix 0 0 (hmat leftMat `NL.add` hmat rightMat)
-
-{-
- -concatenate :: Axis -> Matrix -> Matrix -> Either String Matrix
- -concatenate axis full@FullMatrix{} diagonal@DiagonalMatrix{} = toFull diagonal >>= concatenate axis full
- -concatenate axis diagonal@DiagonalMatrix{} full@FullMatrix{} = toFull diagonal >>= \matrix -> concatenate axis matrix full
- -concatenate Columns firstMatrix@(Matrix firstRows firstColumns _) secondMatrix@(Matrix secondRows secondColumns _)
- -    | firstRows /= secondRows = Left $ "Cannot append columns of matrix " ++ showSize secondMatrix ++ " to matrix " ++ showSize firstMatrix
- -    | otherwise = Right $ Matrix firstRows (firstColumns + secondColumns) $ DVU.concat $ DL.zipWith (DVU.++) (toRows firstMatrix) (toRows secondMatrix)
- -concatenate Rows firstMatrix@(Matrix firstRows firstColumns firstVector) secondMatrix@(Matrix secondRows secondColumns secondVector)
- -    | firstColumns /= secondColumns = Left $ "Cannot append rows of matrix " ++ showSize secondMatrix ++ " to matrix " ++ showSize firstMatrix
- -    | otherwise = Right $ Matrix (firstRows + secondRows) firstColumns $ firstVector DVU.++ secondVector
- -}
-
-{-
- -convolve :: Matrix -> Matrix -> Matrix
- -convolve matrix@(Matrix matrixRows matrixColumns _) kernel@(Matrix kernelRows kernelColumns _) =
- -    generate matrixRows matrixColumns computeConvolutedValue
- -  where
- -    kernelRowsWindow = quot kernelRows 2
- -    kernelColumnsWindow = quot kernelColumns 2
- -    computeConvolutedValue (row, column) = P.sum [
- -        if row - kernelRowsWindow + i < 0 ||
- -           row - kernelRowsWindow + i >= matrixRows ||
- -           column - kernelColumnsWindow + j < 0 ||
- -           column - kernelColumnsWindow + j >= matrixColumns
- -            then 0
- -            else matrix ! (row - kernelRowsWindow + i, column - kernelColumnsWindow + j) * kernel ! (i, j)
- -        | i <- [0 .. kernelRows - 1], j <- [0 .. kernelColumns - 1]
- -        ]
- -}
+addMatrices leftMat rightMat = Right . Matrix 0 0 $ NL.add (hmat leftMat) (hmat rightMat)
 
 empty :: Matrix
 empty = Matrix 0 0 mempty
 
 equal ::  Double -> Matrix -> Matrix -> Bool
-equal precision (Matrix _ _ fhmat) (Matrix _ _ shmat) =  fhmat == shmat
+equal precision (Matrix _ _ fhmat) (Matrix _ _ shmat)
+    | NL.size fhmat /= NL.size shmat = False
+    | otherwise = NLD.foldVector (&&) True $ NLD.zipVectorWith (U.equalDouble precision) (NL.flatten fhmat) (NL.flatten shmat)
 
 fromList :: Int -> Int -> [Double] -> Either String Matrix
 fromList rows columns list
     | (rows == columns && rows == length list) || (rows * columns == length list) = Right $ unsafeFromList rows columns list
     | otherwise = Left "Mismatch between dimensions and list length"
-
-fromVector ::  Int -> Int -> DVU.Vector Double -> Either String Matrix
-fromVector rows columns vector = fromList rows columns $ DVU.toList vector
 
 fromHmat :: NL.Matrix Double -> Either String Matrix
 fromHmat = Right . Matrix 0 0
@@ -117,7 +86,7 @@ imap :: ((Int, Int) -> Double -> Double) -> Matrix -> Matrix
 imap function (Matrix rows columns mat) = Matrix rows columns $ NLD.mapMatrixWithIndex function mat
 
 map :: (Double -> Double) -> Matrix -> Matrix
-map f (Matrix rows columns mat) = Matrix 0 0 (NL.cmap f mat)
+map f (Matrix _ _ mat) = Matrix 0 0 (NL.cmap f mat)
 
 maximum ::  Matrix -> Double
 maximum = NL.maxElement . hmat
@@ -146,10 +115,12 @@ sum :: Matrix -> Double
 sum = NL.sumElements . hmat
 
 transpose :: Matrix -> Matrix
-transpose mat = mat { hmat = NL.tr . hmat $ mat }
+transpose (Matrix _ _ hmat) = Matrix 0 0 $ NL.tr' hmat
 
 unsafeFromList :: Int -> Int -> [Double] -> Matrix
-unsafeFromList rows columns list = Matrix rows columns (rows NL.>< columns $ list)
+unsafeFromList rows columns list
+    | rows * columns == length list = Matrix rows columns $ (rows NL.>< columns) list
+    | otherwise                     = Matrix rows rows $ NL.diagl list
 
 zipWith :: (Double -> Double -> Double) -> Matrix -> Matrix -> Matrix
 zipWith f mat1 mat2 = Matrix 0 0 $ NLD.liftMatrix2 (NLD.zipVectorWith f) (hmat mat1) (hmat mat2)
